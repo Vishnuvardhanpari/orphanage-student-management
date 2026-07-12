@@ -318,6 +318,8 @@ Reset Password
 
 Disable User
 
+Enable User
+
 ---
 
 ## Audit

@@ -97,15 +97,29 @@ Milestone 3 — User Management
 
 ### Frontend
 
-* User list (AG Grid + server-side paging/filters)
+* User list (AG Grid + server-side paging/filters/**sorting**)
 * User form (create/edit)
 * User details (enable/disable, reset password via CDK dialogs)
+* User list actions: Angular AG Grid cell renderer with a11y labels; self-disable hidden on list
+* Reset password dialog: confirm-password match validation
 * UserService + models; routes under `/users` with `roleGuard`
 
 ### Docs
 
 * `docs/07_API_Design.md` Users section expanded with full contracts
+* Enable Staff documented in Features, Business Rules, UI UX, and AI Context
 * This Session_context updated for M3
+
+### Milestone 3 QA bug fixes (BUG-001–008)
+
+* BUG-001: `disable()` uses `saveAndFlush` before refresh-token revoke so `enabled=false` persists
+* BUG-002: Users list hides Disable for the current admin (matches detail page)
+* BUG-003: ITs assert DB persistence + login rejection while disabled; `DisabledUserLoginIT` restored
+* BUG-004: AG Grid `sortChanged` drives Spring `sort` query param; client compare disabled
+* BUG-005: Enable Staff added to Features / Business Rules / UI UX / AI Context
+* BUG-006: List returns stable `PageResponse` DTO (no raw `PageImpl` JSON)
+* BUG-007: Reset password confirm field + match validator
+* BUG-008: Actions column uses Angular cell renderer with `aria-label`s
 
 ---
 
@@ -121,7 +135,7 @@ Unchanged from Milestone 1–2. User management specifics:
 
 # Current Objective
 
-Complete Milestone 3 review, manual verification, and merge `user_management` when approved.
+Milestone 3 QA bugs BUG-001–008 fixed on `user_management`. Await user approval, then commit/merge.
 
 ---
 
@@ -160,9 +174,10 @@ None.
 
 # Next Session Goal
 
-1. Manual E2E verify: admin user CRUD, enable/disable, reset password, STAFF 403 on `/users`
-2. Merge `user_management` after review
-3. Start Milestone 4 — Student Database Design
+1. User approval of Milestone 3 bug fixes; commit when requested
+2. Manual E2E smoke: login, disable/enable persistence, list sort, reset password confirm, self-disable hidden
+3. Merge `user_management` after approval
+4. Start Milestone 4 — Student Database Design
 
 ---
 

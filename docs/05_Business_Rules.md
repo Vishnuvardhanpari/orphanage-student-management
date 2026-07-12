@@ -249,6 +249,18 @@ Audit fields:
 
 ---
 
+# User Management Rules
+
+* Users must be pre-provisioned by an Administrator. Open self-registration is not supported.
+* Soft disable only — user records are never physically deleted.
+* Disabling a user persists `enabled = false` and revokes all active refresh tokens.
+* Enabling a user sets `enabled = true` and clears lockout counters (`failedLoginAttempts`, `lockUntil`, `accountNonLocked`).
+* An Administrator cannot disable their own account.
+* The last enabled Administrator cannot be disabled or demoted.
+* Password reset may upgrade a `GOOGLE` auth provider user to `LOCAL_GOOGLE` and revokes refresh tokens.
+
+---
+
 # Validation Rules
 
 Mandatory fields must be validated on both frontend and backend.

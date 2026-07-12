@@ -1,10 +1,28 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { Button } from '../../../../shared/components/button/button';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 
 export interface ResetPasswordDialogData {
   username: string;
+}
+
+function passwordsMatchValidator(): ValidatorFn {
+  return (group: AbstractControl): ValidationErrors | null => {
+    const password = group.get('newPassword')?.value;
+    const confirm = group.get('confirmPassword')?.value;
+    if (!password || !confirm) {
+      return null;
+    }
+    return password === confirm ? null : { passwordsMismatch: true };
+  };
 }
 
 @Component({
@@ -26,6 +44,25 @@ export interface ResetPasswordDialogData {
           />
           @if (form.controls.newPassword.touched && form.controls.newPassword.invalid) {
             <span class="reset-dialog__error">Password must be at least 8 characters.</span>
+          }
+        </label>
+        <label class="reset-dialog__field">
+          <span>Confirm password</span>
+          <input
+            type="password"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+            class="reset-dialog__input"
+          />
+          @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('required')) {
+            <span class="reset-dialog__error">Confirm password is required.</span>
+          }
+          @if (
+            form.controls.confirmPassword.touched &&
+            form.hasError('passwordsMismatch') &&
+            !form.controls.confirmPassword.hasError('required')
+          ) {
+            <span class="reset-dialog__error">Passwords do not match.</span>
           }
         </label>
         @if (error()) {
@@ -80,9 +117,13 @@ export class ResetPasswordDialog {
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly form = this.fb.nonNullable.group({
-    newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
-  });
+  readonly form = this.fb.nonNullable.group(
+    {
+      newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+      confirmPassword: ['', [Validators.required]],
+    },
+    { validators: passwordsMatchValidator() },
+  );
 
   submit(): void {
     if (this.form.invalid) {

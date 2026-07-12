@@ -1,6 +1,7 @@
 package com.orphanage.oms.user.controller;
 
 import com.orphanage.oms.user.dto.CreateUserRequest;
+import com.orphanage.oms.user.dto.PageResponse;
 import com.orphanage.oms.user.dto.ResetPasswordRequest;
 import com.orphanage.oms.user.dto.UpdateUserRequest;
 import com.orphanage.oms.user.dto.UserDetailResponse;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -47,12 +47,12 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "List users with pagination, search, and filters")
-    public Page<UserDetailResponse> list(
+    public PageResponse<UserDetailResponse> list(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) RoleName role,
             @RequestParam(required = false) Boolean enabled,
             @PageableDefault(size = 20, sort = "username", direction = Sort.Direction.ASC) Pageable pageable) {
-        return userService.list(search, role, enabled, pageable);
+        return PageResponse.from(userService.list(search, role, enabled, pageable));
     }
 
     @GetMapping("/{id}")

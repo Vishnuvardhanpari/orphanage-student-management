@@ -157,10 +157,35 @@ class UserManagementIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(false));
 
+        entityManager.clear();
+        assertThat(userRepository.findById(staffId).orElseThrow().isEnabled())
+                .as("enabled flag must persist as false after disable")
+                .isFalse();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"staff","password":"StaffPass123!"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Account is disabled."));
+
         mockMvc.perform(post("/api/v1/users/" + staffId + "/enable")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true));
+
+        entityManager.clear();
+        assertThat(userRepository.findById(staffId).orElseThrow().isEnabled())
+                .as("enabled flag must persist as true after enable")
+                .isTrue();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"staff","password":"StaffPass123!"}
+                                """))
+                .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/v1/users/" + staffId + "/reset-password")
                         .header("Authorization", "Bearer " + token)
@@ -192,7 +217,9 @@ class UserManagementIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(false));
 
+        entityManager.clear();
         assertThat(userRepository.findById(staffId)).isPresent();
+        assertThat(userRepository.findById(staffId).orElseThrow().isEnabled()).isFalse();
     }
 
     @Test

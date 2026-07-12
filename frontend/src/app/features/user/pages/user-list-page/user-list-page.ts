@@ -13,13 +13,14 @@ import {
   ColDef,
   GridApi,
   GridReadyEvent,
-  ICellRendererParams,
   ModuleRegistry,
   AllCommunityModule,
+  SortChangedEvent,
 } from 'ag-grid-community';
 import { catchError, finalize, firstValueFrom, of } from 'rxjs';
 import { APP_PATHS } from '../../../../core/constants/routes';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthService } from '../../../auth/services/auth.service';
 import { Button } from '../../../../shared/components/button/button';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
@@ -31,10 +32,26 @@ import {
   ResetPasswordDialog,
   ResetPasswordDialogData,
 } from '../../components/reset-password-dialog/reset-password-dialog';
+import {
+  UserActionsCellContext,
+  UserActionsCellRenderer,
+} from '../../components/user-actions-cell-renderer/user-actions-cell-renderer';
 import { ManagedUser } from '../../models/user.models';
 import { UserService } from '../../services/user.service';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+/** No-op comparator so AG Grid does not reorder the current page client-side. */
+const serverSortComparator = (): number => 0;
+
+const SORT_FIELD_MAP: Record<string, string> = {
+  username: 'username',
+  email: 'email',
+  role: 'role.name',
+  enabled: 'enabled',
+  authProvider: 'authProvider',
+  lastLoginAt: 'lastLoginAt',
+};
 
 @Component({
   selector: 'app-user-list-page',
@@ -53,6 +70,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 })
 export class UserListPage implements OnInit {
   private readonly userService = inject(UserService);
+  private readonly authService = inject(AuthService);
   private readonly notifications = inject(NotificationService);
   private readonly dialog = inject(Dialog);
   private readonly router = inject(Router);
@@ -65,6 +83,7 @@ export class UserListPage implements OnInit {
   readonly totalElements = signal(0);
   readonly page = signal(0);
   readonly pageSize = signal(20);
+  readonly sort = signal('username,asc');
   readonly paths = APP_PATHS;
 
   readonly filterForm = this.fb.nonNullable.group({
@@ -73,76 +92,106 @@ export class UserListPage implements OnInit {
     enabled: [''],
   });
 
+  readonly gridContext: UserActionsCellContext = {
+    currentUserId: null,
+    onView: (user) => {
+      void this.router.navigateByUrl(`${APP_PATHS.users}/${user.id}`);
+    },
+    onEdit: (user) => {
+      void this.router.navigateByUrl(`${APP_PATHS.users}/${user.id}/edit`);
+    },
+    onToggle: (user) => {
+      void this.toggleEnabled(user);
+    },
+    onReset: (user) => {
+      void this.openResetPassword(user);
+    },
+  };
+
   readonly columnDefs: ColDef<ManagedUser>[] = [
-    { field: 'username', headerName: 'Username', flex: 1, minWidth: 140 },
-    { field: 'email', headerName: 'Email', flex: 1.4, minWidth: 180 },
-    { field: 'role', headerName: 'Role', width: 110 },
+    {
+      field: 'username',
+      headerName: 'Username',
+      flex: 1,
+      minWidth: 140,
+      comparator: serverSortComparator,
+    },
+    {
+      field: 'email',
+      headerName: 'Email',
+      flex: 1.4,
+      minWidth: 180,
+      comparator: serverSortComparator,
+    },
+    {
+      field: 'role',
+      headerName: 'Role',
+      width: 110,
+      comparator: serverSortComparator,
+    },
     {
       field: 'enabled',
       headerName: 'Status',
       width: 110,
       valueFormatter: (p) => (p.value ? 'Enabled' : 'Disabled'),
+      comparator: serverSortComparator,
     },
-    { field: 'authProvider', headerName: 'Provider', width: 130 },
+    {
+      field: 'authProvider',
+      headerName: 'Provider',
+      width: 130,
+      comparator: serverSortComparator,
+    },
     {
       field: 'lastLoginAt',
       headerName: 'Last login',
       width: 170,
       valueFormatter: (p) =>
         p.value ? new Date(p.value).toLocaleString() : '—',
+      comparator: serverSortComparator,
     },
     {
       headerName: 'Actions',
-      width: 280,
+      width: 320,
       sortable: false,
       filter: false,
-      cellRenderer: (params: ICellRendererParams<ManagedUser>) => {
-        const user = params.data;
-        if (!user) {
-          return '';
-        }
-        const wrap = document.createElement('div');
-        wrap.className = 'user-grid-actions';
-        wrap.innerHTML = `
-          <button type="button" data-action="view" class="user-grid-actions__btn">View</button>
-          <button type="button" data-action="edit" class="user-grid-actions__btn">Edit</button>
-          <button type="button" data-action="toggle" class="user-grid-actions__btn">
-            ${user.enabled ? 'Disable' : 'Enable'}
-          </button>
-          <button type="button" data-action="reset" class="user-grid-actions__btn">Reset PW</button>
-        `;
-        wrap.addEventListener('click', (event) => {
-          const target = event.target as HTMLElement;
-          const action = target.getAttribute('data-action');
-          if (!action) {
-            return;
-          }
-          if (action === 'view') {
-            void this.router.navigateByUrl(`${APP_PATHS.users}/${user.id}`);
-          } else if (action === 'edit') {
-            void this.router.navigateByUrl(`${APP_PATHS.users}/${user.id}/edit`);
-          } else if (action === 'toggle') {
-            void this.toggleEnabled(user);
-          } else if (action === 'reset') {
-            void this.openResetPassword(user);
-          }
-        });
-        return wrap;
-      },
+      cellRenderer: UserActionsCellRenderer,
     },
   ];
 
   readonly defaultColDef: ColDef = {
     sortable: true,
     resizable: true,
+    unSortIcon: true,
   };
 
   ngOnInit(): void {
     this.loadUsers();
   }
 
+  /** Refresh current-user id on the grid context before each render/load. */
+  private syncGridContext(): void {
+    this.gridContext.currentUserId = this.authService.currentUser()?.id ?? null;
+  }
+
   onGridReady(event: GridReadyEvent<ManagedUser>): void {
     this.gridApi = event.api;
+  }
+
+  onSortChanged(event: SortChangedEvent<ManagedUser>): void {
+    const sorted = event.api
+      .getColumnState()
+      .find((col) => col.sort != null);
+    let nextSort = 'username,asc';
+    if (sorted?.colId && sorted.sort && SORT_FIELD_MAP[sorted.colId]) {
+      nextSort = `${SORT_FIELD_MAP[sorted.colId]},${sorted.sort}`;
+    }
+    if (nextSort === this.sort()) {
+      return;
+    }
+    this.sort.set(nextSort);
+    this.page.set(0);
+    this.loadUsers();
   }
 
   applyFilters(): void {
@@ -172,6 +221,7 @@ export class UserListPage implements OnInit {
   }
 
   loadUsers(): void {
+    this.syncGridContext();
     this.loading.set(true);
     const filters = this.filterForm.getRawValue();
     const enabled =
@@ -184,7 +234,7 @@ export class UserListPage implements OnInit {
         enabled,
         page: this.page(),
         size: this.pageSize(),
-        sort: 'username,asc',
+        sort: this.sort(),
       })
       .pipe(
         catchError((err) => {
@@ -210,6 +260,10 @@ export class UserListPage implements OnInit {
   }
 
   private async toggleEnabled(user: ManagedUser): Promise<void> {
+    if (user.id === this.authService.currentUser()?.id) {
+      return;
+    }
+
     const enabling = !user.enabled;
     const ref = this.dialog.open<boolean, ConfirmDialogData>(ConfirmDialog, {
       data: {

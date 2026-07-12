@@ -171,7 +171,7 @@ public class UserService {
 
         user.setEnabled(false);
         user.setUpdatedBy(currentUserId());
-        User saved = userRepository.save(user);
+        User saved = userRepository.saveAndFlush(user);
         refreshTokenService.revokeAllForUser(id);
         log.info("User disabled id={} by={}", id, currentUserId());
         return userMapper.toDetailResponse(saved);

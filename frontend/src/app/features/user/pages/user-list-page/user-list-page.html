@@ -51,8 +51,10 @@
         [rowData]="users()"
         [columnDefs]="columnDefs"
         [defaultColDef]="defaultColDef"
+        [context]="gridContext"
         [suppressCellFocus]="true"
         (gridReady)="onGridReady($event)"
+        (sortChanged)="onSortChanged($event)"
       />
     </div>
 

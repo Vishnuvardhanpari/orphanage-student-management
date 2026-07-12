@@ -190,6 +190,7 @@ Administrator
 - Create Staff
 - Edit Staff
 - Disable Staff
+- Enable Staff
 - Reset Password
 - Assign Roles
 

@@ -141,6 +141,38 @@ class UserServiceTest {
     }
 
     @Test
+    void disablePersistsAndRevokesRefreshTokens() {
+        UUID staffId = UUID.randomUUID();
+        User staff = User.builder()
+                .id(staffId)
+                .username("staff1")
+                .email("staff1@oms.local")
+                .passwordHash("hash")
+                .authProvider(AuthProvider.LOCAL)
+                .role(staffRole)
+                .enabled(true)
+                .accountNonLocked(true)
+                .failedLoginAttempts(0)
+                .build();
+        when(userRepository.findByIdWithRole(staffId)).thenReturn(Optional.of(staff));
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userMapper.toDetailResponse(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            return new UserDetailResponse(
+                    u.getId(), u.getUsername(), u.getEmail(), RoleName.STAFF, u.isEnabled(),
+                    AuthProvider.LOCAL, true, null, null, null);
+        });
+
+        UserDetailResponse response = userService.disable(staffId);
+
+        assertThat(response.enabled()).isFalse();
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().isEnabled()).isFalse();
+        verify(refreshTokenService).revokeAllForUser(eq(staffId));
+    }
+
+    @Test
     void disableLastAdminFails() {
         UUID otherAdminId = UUID.randomUUID();
         User other = User.builder()

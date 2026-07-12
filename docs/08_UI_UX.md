@@ -193,6 +193,7 @@ Admin Only
 * Add User
 * Edit User
 * Disable User
+* Enable User
 
 ---
 
