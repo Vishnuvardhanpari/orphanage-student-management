@@ -95,6 +95,7 @@ Exit
 
 * exit_date
 * exit_reason
+* exit_remarks
 
 Student Status
 
@@ -197,11 +198,13 @@ Create indexes for:
 * admission_date
 * status
 * deleted
+* (deleted, status) composite for default list queries
 
 Document Table
 
 * student_id
 * document_type
+* deleted
 
 Audit Table
 

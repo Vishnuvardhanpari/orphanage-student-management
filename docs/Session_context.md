@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 3 — User Management (implementation on `user_management`)
+Milestone 4 — Student Database Design (implementation on `milestone/student-database`)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 3 — User Management
+Milestone 4 — Student Database Design
 
 ---
 
@@ -83,7 +83,7 @@ Milestone 3 — User Management
 
 ---
 
-## Milestone 3 — User Management (implemented on `user_management`)
+## Milestone 3 — User Management (merged to `main`)
 
 ### Backend
 
@@ -108,41 +108,56 @@ Milestone 3 — User Management
 
 * `docs/07_API_Design.md` Users section expanded with full contracts
 * Enable Staff documented in Features, Business Rules, UI UX, and AI Context
-* This Session_context updated for M3
 
 ### Milestone 3 QA bug fixes (BUG-001–008)
 
-* BUG-001: `disable()` uses `saveAndFlush` before refresh-token revoke so `enabled=false` persists
-* BUG-002: Users list hides Disable for the current admin (matches detail page)
-* BUG-003: ITs assert DB persistence + login rejection while disabled; `DisabledUserLoginIT` restored
-* BUG-004: AG Grid `sortChanged` drives Spring `sort` query param; client compare disabled
-* BUG-005: Enable Staff added to Features / Business Rules / UI UX / AI Context
-* BUG-006: List returns stable `PageResponse` DTO (no raw `PageImpl` JSON)
-* BUG-007: Reset password confirm field + match validator
-* BUG-008: Actions column uses Angular cell renderer with `aria-label`s
+* BUG-001–008 resolved and merged to `main`
+
+---
+
+## Milestone 4 — Student Database Design (in progress on `milestone/student-database`)
+
+### Backend
+
+* Flyway `V4__create_students_and_documents.sql`: `students` + `student_documents`
+* CHECKs for gender, status, document_type; UNIQUE admission_number / aadhaar_number
+* FK `student_documents.student_id → students(id) ON DELETE RESTRICT`
+* Indexes including composite `(deleted, status)`
+* JPA entities: `Student`, `StudentDocument` with `@SQLRestriction("deleted = false")`
+* Enums: `Gender`, `StudentStatus`, `DocumentType`
+* Schema IT: `StudentSchemaIntegrationTest` (H2 + Hibernate; asserts V4 migration on classpath)
+* Column `exit_remarks` added (from requirements); synced into `docs/06_Database_Design.md`
+
+### Out of scope (Milestone 5+)
+
+* Student CRUD APIs / DTOs / services / controllers
+* Repositories
+* Frontend registration / uploads / GCS
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–2. User management specifics:
+Unchanged from Milestone 1–3. Student schema specifics:
 
-* Soft disable (no physical user delete)
-* Single role per user (`ADMIN` | `STAFF`)
-* Pre-provision only — no open self-registration
+* Denormalized student row (guardian / education / medical inline)
+* Soft delete on students and documents; never physical student delete
+* Profile photo path on `students`; supporting docs metadata in `student_documents`
+* Gender: `MALE` | `FEMALE` | `OTHER`
+* Status: `ACTIVE` | `INACTIVE`
 
 ---
 
 # Current Objective
 
-Milestone 3 QA bugs BUG-001–008 fixed on `user_management`. Await user approval, then commit/merge.
+Complete Milestone 4 review/approval, then commit on `milestone/student-database`.
 
 ---
 
 # Current Branch
 
 ```text
-user_management
+milestone/student-database
 ```
 
 ---
@@ -153,13 +168,14 @@ user_management
 * Spring Security + JWT + Google OAuth (GIS ID token)
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
+* `@SQLRestriction` hides soft-deleted rows by default; restore queries (later) must bypass explicitly
 
 ---
 
 # Pending Milestones
 
-* Milestone 3 — User Management (finish review / merge)
-* Milestone 4 — Student Database Design
+* Milestone 4 — Student Database Design (await approval / commit)
+* Milestone 5 — Student Registration
 * … (see roadmap)
 
 ---
@@ -168,16 +184,15 @@ user_management
 
 None.
 
-**Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`.
+**Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`. Low Windows paging-file memory can cause Surefire fork OOMs; use `-DforkCount=0` if needed locally.
 
 ---
 
 # Next Session Goal
 
-1. User approval of Milestone 3 bug fixes; commit when requested
-2. Manual E2E smoke: login, disable/enable persistence, list sort, reset password confirm, self-disable hidden
-3. Merge `user_management` after approval
-4. Start Milestone 4 — Student Database Design
+1. User approval of Milestone 4 schema + entities
+2. Commit on `milestone/student-database` when requested
+3. Start Milestone 5 — Student Registration (CRUD + form + uploads)
 
 ---
 
