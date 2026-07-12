@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 2 — Authentication (implementation on `feature/authentication`)
+Milestone 3 — User Management (implementation on `user_management`)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 2 — Authentication
+Milestone 3 — User Management
 
 ---
 
@@ -55,11 +55,10 @@ Milestone 2 — Authentication
 ## Milestone 1 — Project Initialization (Phases A–D)
 
 * Root structure, Docker Postgres, Spring Boot foundation, Angular foundation, CORS/Prometheus integration
-* See prior session notes for Phase A–D runtime verification details
 
 ---
 
-## Milestone 2 — Authentication (implemented on `feature/authentication`)
+## Milestone 2 — Authentication (merged to `main`)
 
 ### Backend
 
@@ -71,7 +70,7 @@ Milestone 2 — Authentication
 * Auth APIs: login, google, refresh, logout, me
 * SecurityFilterChain: stateless JWT; Swagger denied in prod
 * Bootstrap admin via `AdminBootstrapRunner` when users table is empty
-* Unit + integration tests for JWT and auth flows (`JwtServiceTest`, `AuthIntegrationTest`)
+* Unit + integration tests for JWT and auth flows
 
 ### Frontend
 
@@ -82,33 +81,54 @@ Milestone 2 — Authentication
 * Topbar logout; sidebar hides Users for non-admins
 * Unit tests for AuthService and authGuard
 
+---
+
+## Milestone 3 — User Management (implemented on `user_management`)
+
+### Backend
+
+* `UserController` at `/api/v1/users` (ADMIN only via SecurityConfig + `@PreAuthorize`)
+* List (page/search/filter), get, create, update, disable, enable, reset-password
+* Soft disable only (`DELETE` aliases disable); revoke refresh tokens on disable/reset
+* Safety: cannot disable/demote self; cannot disable/demote last enabled ADMIN
+* Create supports LOCAL (password) and GOOGLE (no password) provisioning
+* Reset password upgrades GOOGLE → LOCAL_GOOGLE
+* Unit tests (`UserServiceTest`) + integration tests (`UserManagementIntegrationTest`)
+
+### Frontend
+
+* User list (AG Grid + server-side paging/filters)
+* User form (create/edit)
+* User details (enable/disable, reset password via CDK dialogs)
+* UserService + models; routes under `/users` with `roleGuard`
+
 ### Docs
 
-* `docs/07_API_Design.md` updated with refresh/me contracts
-* `.env.example` updated with JWT refresh, lockout, bootstrap admin vars
+* `docs/07_API_Design.md` Users section expanded with full contracts
+* This Session_context updated for M3
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1. Auth specifics:
+Unchanged from Milestone 1–2. User management specifics:
 
-* JWT access + opaque refresh (DB-hashed)
-* Google login via ID token exchange (not Spring redirect OAuth)
-* Refresh tokens elevated into Milestone 2 (were Future/Optional in older docs)
+* Soft disable (no physical user delete)
+* Single role per user (`ADMIN` | `STAFF`)
+* Pre-provision only — no open self-registration
 
 ---
 
 # Current Objective
 
-Complete Milestone 2 review, manual verification, and merge `feature/authentication` when approved.
+Complete Milestone 3 review, manual verification, and merge `user_management` when approved.
 
 ---
 
 # Current Branch
 
 ```text
-feature/authentication
+user_management
 ```
 
 ---
@@ -124,8 +144,7 @@ feature/authentication
 
 # Pending Milestones
 
-* Milestone 2 — Authentication (finish review / merge)
-* Milestone 3 — User Management
+* Milestone 3 — User Management (finish review / merge)
 * Milestone 4 — Student Database Design
 * … (see roadmap)
 
@@ -141,10 +160,9 @@ None.
 
 # Next Session Goal
 
-1. Manual E2E verify: password login, refresh, logout, guards
-2. Configure `GOOGLE_CLIENT_ID` / `environment.googleClientId` for Google login smoke test
-3. Merge `feature/authentication` after review
-4. Start Milestone 3 — User Management
+1. Manual E2E verify: admin user CRUD, enable/disable, reset password, STAFF 403 on `/users`
+2. Merge `user_management` after review
+3. Start Milestone 4 — Student Database Design
 
 ---
 

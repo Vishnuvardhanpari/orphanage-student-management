@@ -1,0 +1,30 @@
+@reference "../../../../../styles.css";
+
+.user-form {
+  @apply flex flex-col gap-4;
+}
+
+.user-form__loading {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.user-form__card {
+  @apply grid max-w-xl gap-4 rounded-xl border border-surface-border bg-surface-elevated p-6;
+}
+
+.user-form__field {
+  @apply flex flex-col gap-1.5 text-sm font-medium text-surface-fg;
+}
+
+.user-form__input {
+  @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal
+    text-surface-fg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
+}
+
+.user-form__error {
+  @apply text-sm font-normal text-error-600;
+}
+
+.user-form__actions {
+  @apply pt-2;
+}

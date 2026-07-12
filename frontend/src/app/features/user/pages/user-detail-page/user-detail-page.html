@@ -1,0 +1,83 @@
+<section class="user-detail">
+  <app-page-header title="User details" subtitle="Account profile and status.">
+    <a [routerLink]="paths.users">
+      <app-button variant="secondary">Back to list</app-button>
+    </a>
+  </app-page-header>
+
+  @if (loading()) {
+    <p class="user-detail__loading">Loading…</p>
+  } @else if (user(); as u) {
+    <div class="user-detail__card">
+      <dl class="user-detail__grid">
+        <div>
+          <dt>Username</dt>
+          <dd>{{ u.username }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ u.email }}</dd>
+        </div>
+        <div>
+          <dt>Role</dt>
+          <dd>{{ u.role }}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <span
+              class="user-detail__badge"
+              [class.user-detail__badge--ok]="u.enabled"
+              [class.user-detail__badge--off]="!u.enabled"
+            >
+              {{ u.enabled ? 'Enabled' : 'Disabled' }}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Auth provider</dt>
+          <dd>{{ u.authProvider }}</dd>
+        </div>
+        <div>
+          <dt>Account lock</dt>
+          <dd>{{ u.accountNonLocked ? 'Not locked' : 'Locked' }}</dd>
+        </div>
+        <div>
+          <dt>Last login</dt>
+          <dd>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'medium') : '—' }}</dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd>{{ u.createdDate | date: 'medium' }}</dd>
+        </div>
+        <div>
+          <dt>Updated</dt>
+          <dd>{{ u.updatedDate | date: 'medium' }}</dd>
+        </div>
+      </dl>
+
+      <div class="user-detail__actions">
+        <a [routerLink]="[paths.users, u.id, 'edit']">
+          <app-button variant="primary" [disabled]="acting()">Edit</app-button>
+        </a>
+        <app-button
+          variant="secondary"
+          [disabled]="acting()"
+          (pressed)="resetPassword()"
+        >
+          Reset password
+        </app-button>
+        <app-button
+          [variant]="u.enabled ? 'danger' : 'primary'"
+          [disabled]="acting() || isSelf()"
+          (pressed)="toggleEnabled()"
+        >
+          {{ u.enabled ? 'Disable' : 'Enable' }}
+        </app-button>
+      </div>
+      @if (isSelf()) {
+        <p class="user-detail__hint">You cannot disable your own account.</p>
+      }
+    </div>
+  }
+</section>

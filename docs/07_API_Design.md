@@ -238,31 +238,121 @@ Generate PDF using filters.
 
 # Users
 
-GET
+Admin only (`ROLE_ADMIN`). JWT required. Soft-disable only — no physical delete.
 
-```
-/users
+## List users
+
+`GET /users`
+
+Query parameters:
+
+* `search` — optional; matches username or email (contains, case-insensitive)
+* `role` — optional; `ADMIN` or `STAFF`
+* `enabled` — optional; `true` or `false`
+* `page`, `size`, `sort` — Spring Data pagination (default `size=20`, `sort=username,asc`)
+
+Response `200` — Spring Data page of user objects:
+
+```json
+{
+  "content": [
+    {
+      "id": "uuid",
+      "username": "staff1",
+      "email": "staff1@oms.local",
+      "role": "STAFF",
+      "enabled": true,
+      "authProvider": "LOCAL",
+      "accountNonLocked": true,
+      "lastLoginAt": null,
+      "createdDate": "2026-01-01T00:00:00Z",
+      "updatedDate": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "size": 20,
+  "number": 0
+}
 ```
 
-POST
+## Get user
 
-```
-/users
+`GET /users/{id}`
+
+Response `200` — single user object (same shape as list item).
+
+## Create user
+
+`POST /users`
+
+Request
+
+```json
+{
+  "username": "staff1",
+  "email": "staff1@oms.local",
+  "role": "STAFF",
+  "authProvider": "LOCAL",
+  "password": "********"
+}
 ```
 
-PUT
+* `authProvider` must be `LOCAL` or `GOOGLE`.
+* `LOCAL` requires `password` (min 8 characters).
+* `GOOGLE` must omit password (pre-provision for Google login by email).
 
-```
-/users/{id}
+Response `201` — created user object.
+
+## Update user
+
+`PUT /users/{id}`
+
+Request
+
+```json
+{
+  "username": "staff1",
+  "email": "staff1@oms.local",
+  "role": "STAFF"
+}
 ```
 
-DELETE
+Does not change password. Cannot demote yourself or demote the last enabled `ADMIN`.
 
-```
-/users/{id}
+Response `200` — updated user object.
+
+## Disable user
+
+`POST /users/{id}/disable`
+
+Also available as `DELETE /users/{id}` (alias — soft disable, not hard delete).
+
+Revokes all refresh tokens. Cannot disable yourself or the last enabled `ADMIN`.
+
+Response `200` — user with `enabled: false`.
+
+## Enable user
+
+`POST /users/{id}/enable`
+
+Clears lockout counters. Response `200` — user with `enabled: true`.
+
+## Reset password
+
+`POST /users/{id}/reset-password`
+
+Request
+
+```json
+{
+  "newPassword": "********"
+}
 ```
 
-Disable User
+BCrypt-hashes the password, clears lockout, revokes refresh tokens. If the user was `GOOGLE`-only, upgrades `authProvider` to `LOCAL_GOOGLE`.
+
+Response `200` — updated user object.
 
 ---
 

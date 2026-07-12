@@ -1,0 +1,45 @@
+@reference "../../../../../styles.css";
+
+.user-detail {
+  @apply flex flex-col gap-4;
+}
+
+.user-detail__loading {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.user-detail__card {
+  @apply rounded-xl border border-surface-border bg-surface-elevated p-6;
+}
+
+.user-detail__grid {
+  @apply m-0 grid gap-4 sm:grid-cols-2;
+
+  dt {
+    @apply text-xs font-medium uppercase tracking-wide text-surface-muted-fg;
+  }
+
+  dd {
+    @apply mt-1 text-sm text-surface-fg;
+  }
+}
+
+.user-detail__badge {
+  @apply inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold;
+
+  &--ok {
+    @apply bg-accent-500/15 text-accent-700;
+  }
+
+  &--off {
+    @apply bg-inactive-500/15 text-inactive-500;
+  }
+}
+
+.user-detail__actions {
+  @apply mt-6 flex flex-wrap gap-2;
+}
+
+.user-detail__hint {
+  @apply mt-3 text-sm text-surface-muted-fg;
+}

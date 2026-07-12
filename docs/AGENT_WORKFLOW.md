@@ -6,13 +6,15 @@
 
 This document defines the mandatory workflow that every AI agent must follow while working on this project.
 
-The objective is to ensure:
+The objectives are:
 
 * Consistent implementation
 * High code quality
 * Production-ready software
-* Small reviewable changes
+* Small, reviewable changes
 * Minimal technical debt
+* Predictable development workflow
+* Clean Git history
 
 This workflow applies to every milestone and every feature.
 
@@ -29,28 +31,89 @@ Then read only the documentation relevant to the current task.
 
 Examples:
 
-Authentication
+### Authentication
 
-* 04_User_Roles.md
-* 05_Business_Rules.md
-* 07_API_Design.md
+* `docs/04_User_Roles.md`
+* `docs/05_Business_Rules.md`
+* `docs/07_API_Design.md`
 
-Student Module
+### Student Module
 
-* 02_Requirements.md
-* 03_Features.md
-* 06_Database_Design.md
-* 08_UI_UX.md
+* `docs/02_Requirements.md`
+* `docs/03_Features.md`
+* `docs/06_Database_Design.md`
+* `docs/08_UI_UX.md`
 
-Deployment
+### Deployment
 
-* 09_Deployment.md
+* `docs/09_Deployment.md`
 
-Testing
+### Testing
 
-* 11_Testing_Strategy.md
+* `docs/11_Testing_Strategy.md`
 
 Do not load unnecessary documentation.
+
+---
+
+# Git Branch Verification (Mandatory)
+
+Before starting any new milestone or major feature, verify that development is being performed on the correct Git branch.
+
+## Branch Strategy
+
+Every milestone must be developed in its own dedicated Git branch.
+
+Examples:
+
+```text
+milestone/project-initialization
+milestone/authentication
+milestone/user-management
+milestone/student-database
+milestone/student-registration
+milestone/student-profile
+milestone/student-search
+milestone/report-export
+milestone/dashboard
+```
+
+If a milestone is large, feature branches may be created.
+
+Examples:
+
+```text
+feature/auth-jwt
+feature/auth-google-oauth
+feature/auth-refresh-token
+
+feature/student-upload
+feature/student-search
+
+feature/report-single-pdf
+feature/report-bulk-pdf
+```
+
+## Mandatory AI Workflow
+
+Before Planning begins, the AI agent must:
+
+1. Ask which Git branch is currently checked out.
+2. Determine whether it matches the current milestone.
+3. If not, recommend the Git commands to create or switch to the correct branch.
+4. Wait for confirmation before continuing.
+
+Example:
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b milestone/authentication
+```
+
+Never begin implementation on the `main` branch.
+
+Do not perform Git operations automatically.
 
 ---
 
@@ -58,24 +121,28 @@ Do not load unnecessary documentation.
 
 Every milestone must follow this lifecycle.
 
-```
+```text
+Git Branch Verification
+        ↓
 Planning
-      ↓
+        ↓
 Architecture Review
-      ↓
+        ↓
 Approval
-      ↓
+        ↓
 Implementation
-      ↓
+        ↓
 Self Review
-      ↓
+        ↓
 Independent Review
-      ↓
+        ↓
 Approval
-      ↓
+        ↓
 Update Session Context
-      ↓
-Git Commit
+        ↓
+Recommend Git Commit
+        ↓
+Milestone Complete
 ```
 
 Never skip any step.
@@ -91,7 +158,8 @@ Before generating code:
 * Explain the implementation approach.
 * Identify affected modules.
 * Identify risks.
-* Break implementation into logical tasks.
+* Identify assumptions.
+* Break implementation into logical, reviewable tasks.
 
 Do not generate code.
 
@@ -114,10 +182,12 @@ Evaluate:
 * Scalability
 * Maintainability
 * Future compatibility
+* Production readiness
 
 If improvements are needed:
 
-Revise the plan.
+* Revise the implementation plan.
+* Explain why changes are required.
 
 If acceptable, explicitly state:
 
@@ -138,6 +208,8 @@ Requirements:
 * Avoid TODO comments.
 * Use descriptive names.
 * Follow existing project conventions.
+* Keep implementations modular.
+* Preserve backward compatibility whenever possible.
 
 ---
 
@@ -156,26 +228,36 @@ Review for:
 * Clean Architecture
 * SOLID
 * Documentation consistency
+* Project standards compliance
 
-Fix any Critical or Major issues before presenting the work.
+Fix any Critical or Major issues before presenting the implementation.
 
 ---
 
 # Step 5 — Independent Review
 
-Perform a second review from the perspective of a Software Architect.
+Review the completed implementation from the perspective of a Software Architect.
 
 Do not implement new features.
 
-Identify:
+Evaluate:
 
-Critical
+* Architecture
+* Security
+* Performance
+* Maintainability
+* Scalability
+* Code quality
+* Folder structure
+* Configuration
+* Documentation
 
-Major
+Present findings grouped as:
 
-Minor
-
-Suggestions
+* Critical
+* Major
+* Minor
+* Suggestions
 
 Explain the reasoning behind every finding.
 
@@ -185,7 +267,7 @@ Explain the reasoning behind every finding.
 
 Wait for user approval.
 
-Do not continue to the next phase automatically.
+Do not continue automatically to another phase, task, or milestone.
 
 ---
 
@@ -197,12 +279,13 @@ Update:
 
 Include:
 
-* Completed milestone
-* Completed phase
+* Current milestone
+* Current phase
 * Completed tasks
 * Current task
 * Next task
-* Blockers
+* Known blockers
+* Current project status
 
 ---
 
@@ -212,11 +295,18 @@ Recommend an appropriate commit message.
 
 Example:
 
-```
+```text
 feat(auth): implement JWT authentication foundation
 ```
 
-Do not perform Git operations.
+Recommend:
+
+* Reviewing changes
+* Running builds
+* Running tests
+* Creating a Pull Request
+
+Do not perform Git operations automatically.
 
 ---
 
@@ -231,6 +321,8 @@ Always:
 * Keep components small.
 * Keep classes focused.
 * Keep methods concise.
+* Keep commits logically grouped.
+* Explain important architectural decisions.
 
 Never:
 
@@ -240,6 +332,7 @@ Never:
 * Commit secrets.
 * Hardcode credentials.
 * Modify completed milestones unnecessarily.
+* Continue beyond the approved scope.
 
 ---
 
@@ -247,32 +340,35 @@ Never:
 
 Before considering work complete, verify:
 
-Backend
+## Backend
 
-* Project builds
-* Tests pass
-* No dependency conflicts
-* Logging configured
-* Configuration valid
+* Project builds successfully.
+* Tests pass.
+* No dependency conflicts.
+* Logging configured.
+* Configuration valid.
+* Security configuration reviewed.
 
-Frontend
+## Frontend
 
-* Project builds
-* Responsive UI
-* Tailwind classes consistent
-* No console errors
+* Project builds successfully.
+* Responsive UI.
+* Tailwind classes consistent.
+* No console errors.
+* Lazy loading strategy respected.
 
-Infrastructure
+## Infrastructure
 
-* Docker builds
-* PostgreSQL connectivity
-* Environment variables
-* Deployment compatibility
+* Docker builds.
+* PostgreSQL connectivity.
+* Environment variables.
+* Deployment compatibility.
 
-Documentation
+## Documentation
 
-* Session_context updated
-* Documentation still accurate
+* Session_context updated.
+* Documentation remains accurate.
+* Architecture still aligns with AI Context.
 
 ---
 
@@ -284,6 +380,7 @@ Responsible for:
 
 * Requirement analysis
 * Architecture
+* Technical design
 * Task breakdown
 * Risk analysis
 
@@ -301,6 +398,8 @@ Responsible for:
 
 Implements only approved tasks.
 
+Performs a self-review after implementation.
+
 ---
 
 ## Review Agent
@@ -311,6 +410,7 @@ Responsible for:
 * Security review
 * Performance review
 * Maintainability review
+* Production readiness review
 
 Does not generate new features.
 
@@ -318,14 +418,33 @@ Does not generate new features.
 
 # Prompting Guidelines
 
-When starting a new agent:
+When starting a new AI agent:
 
 1. Read the required documentation.
-2. Explain the implementation plan.
-3. Wait for approval.
-4. Implement only the approved scope.
-5. Perform self-review.
-6. Wait for approval before continuing.
+2. Verify the current Git branch.
+3. If the milestone branch is not checked out, recommend the appropriate Git commands.
+4. Wait for branch confirmation.
+5. Explain the implementation plan.
+6. Wait for approval.
+7. Implement only the approved scope.
+8. Perform a self-review.
+9. Wait for approval before continuing.
+
+Never assume the correct Git branch has already been checked out.
+
+---
+
+# Standard AI Startup Questions
+
+At the beginning of every new milestone or feature, ask:
+
+1. Which milestone or feature are we implementing?
+2. Are you currently on the correct Git branch?
+3. If not, would you like me to recommend the Git commands?
+4. Have the required documentation files been loaded?
+5. Shall I begin with the Planning stage?
+
+Do not generate code until these questions have been answered.
 
 ---
 
@@ -335,10 +454,14 @@ A task is complete only when:
 
 * Requirements implemented.
 * Code builds successfully.
+* Tests pass where applicable.
 * No Critical review findings remain.
 * Documentation updated.
 * Session_context updated.
 * Manual verification steps provided.
+* Development completed on the correct milestone branch.
+* Recommended commit message provided.
+* Pull Request strategy recommended.
 * Ready for Git commit.
 
-Never proceed to the next milestone without explicit approval.
+Never proceed to the next milestone without explicit user approval.
