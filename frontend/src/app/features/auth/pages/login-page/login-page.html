@@ -1,0 +1,69 @@
+<section class="login-page">
+  <div class="login-page__panel glass-panel">
+    <div class="login-page__brand">
+      <span class="login-page__mark" aria-hidden="true">OMS</span>
+      <h1 class="login-page__title">Orphanage Management System</h1>
+      <p class="login-page__subtitle">Sign in to continue</p>
+    </div>
+
+    <form class="login-page__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label class="login-page__field">
+        <span class="login-page__label">Username</span>
+        <input
+          class="login-page__input"
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
+        />
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+          <span class="login-page__error">Username is required.</span>
+        }
+      </label>
+
+      <label class="login-page__field">
+        <span class="login-page__label">Password</span>
+        <div class="login-page__password">
+          <input
+            class="login-page__input"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+          />
+          <button
+            type="button"
+            class="login-page__toggle"
+            (click)="togglePassword()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          >
+            <lucide-icon
+              [img]="showPassword() ? icons.EyeOff : icons.Eye"
+              [size]="18"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="login-page__error">Password must be at least 8 characters.</span>
+        }
+      </label>
+
+      <app-button
+        type="submit"
+        variant="primary"
+        [fullWidth]="true"
+        [disabled]="submitting()"
+      >
+        {{ submitting() ? 'Signing in…' : 'Sign in' }}
+      </app-button>
+    </form>
+
+    @if (googleEnabled()) {
+      <div class="login-page__divider" aria-hidden="true">
+        <span>or</span>
+      </div>
+      <div id="oms-google-btn" class="login-page__google" aria-label="Continue with Google"></div>
+    }
+  </div>
+</section>

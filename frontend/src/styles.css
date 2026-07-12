@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* OMS design tokens — primary blue, accent green, status colors, glass. */
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  --color-accent-500: #22c55e;
+  --color-accent-600: #16a34a;
+  --color-accent-700: #15803d;
+
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-warning-500: #f97316;
+  --color-warning-600: #ea580c;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-inactive-500: #6b7280;
+
+  --color-surface: #f8fafc;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #f1f5f9;
+  --color-surface-fg: #0f172a;
+  --color-surface-muted-fg: #64748b;
+  --color-surface-border: #e2e8f0;
+
+  --color-glass-bg: rgb(255 255 255 / 0.72);
+  --color-glass-border: rgb(148 163 184 / 0.35);
+}
+
+.dark {
+  --color-surface: #0b1220;
+  --color-surface-elevated: #111827;
+  --color-surface-muted: #1e293b;
+  --color-surface-fg: #f8fafc;
+  --color-surface-muted-fg: #94a3b8;
+  --color-surface-border: #334155;
+  --color-glass-bg: rgb(17 24 39 / 0.72);
+  --color-glass-border: rgb(148 163 184 / 0.2);
+}
+
+@layer base {
+  html {
+    @apply h-full scroll-smooth antialiased;
+  }
+
+  body {
+    @apply m-0 min-h-full bg-surface font-sans text-surface-fg;
+  }
+
+  *:focus-visible {
+    @apply outline-none;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background-color: var(--color-glass-bg);
+    border-color: var(--color-glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}

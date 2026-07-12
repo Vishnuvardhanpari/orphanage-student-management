@@ -1,0 +1,16 @@
+<button
+  [attr.type]="type()"
+  [disabled]="disabled()"
+  class="oms-btn"
+  [class.oms-btn--primary]="variant() === 'primary'"
+  [class.oms-btn--secondary]="variant() === 'secondary'"
+  [class.oms-btn--ghost]="variant() === 'ghost'"
+  [class.oms-btn--danger]="variant() === 'danger'"
+  [class.oms-btn--sm]="size() === 'sm'"
+  [class.oms-btn--md]="size() === 'md'"
+  [class.oms-btn--lg]="size() === 'lg'"
+  [class.oms-btn--full]="fullWidth()"
+  (click)="onClick($event)"
+>
+  <ng-content />
+</button>

@@ -1,0 +1,22 @@
+@reference "../../../../styles.css";
+
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.main-layout {
+  @apply flex min-h-screen bg-surface text-surface-fg;
+
+  &__sidebar {
+    @apply sticky top-0 h-screen shrink-0;
+  }
+
+  &__main {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  &__content {
+    @apply flex-1 px-4 py-6 sm:px-6 lg:px-8;
+  }
+}

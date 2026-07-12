@@ -1,0 +1,80 @@
+@reference "../../../../../styles.css";
+
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.login-page {
+  @apply flex min-h-screen items-center justify-center bg-surface px-4;
+
+  &__panel {
+    @apply w-full max-w-md rounded-2xl border border-glass-border p-8 shadow-lg;
+  }
+
+  &__brand {
+    @apply mb-6 flex flex-col items-center gap-3 text-center;
+  }
+
+  &__mark {
+    @apply flex h-12 w-12 items-center justify-center rounded-xl
+      bg-primary-600 text-sm font-bold tracking-wide text-white;
+  }
+
+  &__title {
+    @apply text-xl font-semibold text-surface-fg;
+  }
+
+  &__subtitle {
+    @apply text-sm text-surface-muted-fg;
+  }
+
+  &__form {
+    @apply flex flex-col gap-4;
+  }
+
+  &__field {
+    @apply flex flex-col gap-1.5;
+  }
+
+  &__label {
+    @apply text-sm font-medium text-surface-fg;
+  }
+
+  &__input {
+    @apply w-full rounded-lg border border-glass-border bg-surface px-3 py-2.5
+      text-sm text-surface-fg outline-none transition
+      focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20;
+  }
+
+  &__password {
+    @apply relative;
+
+    .login-page__input {
+      @apply pr-11;
+    }
+  }
+
+  &__toggle {
+    @apply absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5
+      text-surface-muted-fg hover:bg-surface-muted hover:text-surface-fg;
+  }
+
+  &__error {
+    @apply text-xs text-error-600;
+  }
+
+  &__divider {
+    @apply my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-surface-muted-fg;
+
+    &::before,
+    &::after {
+      content: '';
+      @apply h-px flex-1 bg-glass-border;
+    }
+  }
+
+  &__google {
+    @apply flex min-h-10 w-full justify-center;
+  }
+}

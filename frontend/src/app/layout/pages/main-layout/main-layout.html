@@ -1,0 +1,13 @@
+<div class="main-layout">
+  <aside class="main-layout__sidebar hidden md:block">
+    <app-sidebar />
+  </aside>
+
+  <div class="main-layout__main">
+    <app-topbar />
+    <main class="main-layout__content" id="main-content">
+      <router-outlet />
+    </main>
+    <app-footer />
+  </div>
+</div>

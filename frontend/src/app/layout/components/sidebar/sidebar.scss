@@ -1,0 +1,46 @@
+@reference "../../../../styles.css";
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sidebar {
+  @apply flex h-full w-64 flex-col border-r border-glass-border px-3 py-4;
+
+  &__brand {
+    @apply mb-6 flex items-center gap-3 px-2;
+  }
+
+  &__brand-mark {
+    @apply flex h-9 w-9 items-center justify-center rounded-lg
+      bg-primary-600 text-xs font-bold tracking-wide text-white;
+  }
+
+  &__brand-text {
+    @apply flex flex-col leading-tight;
+  }
+
+  &__brand-name {
+    @apply text-sm font-semibold text-surface-fg;
+  }
+
+  &__brand-tag {
+    @apply text-xs text-surface-muted-fg;
+  }
+
+  &__nav {
+    @apply flex flex-1 flex-col gap-1;
+  }
+
+  &__link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+      text-surface-muted-fg transition-colors duration-150
+      hover:bg-surface-muted hover:text-surface-fg
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500;
+
+    &--active {
+      @apply bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300;
+    }
+  }
+}

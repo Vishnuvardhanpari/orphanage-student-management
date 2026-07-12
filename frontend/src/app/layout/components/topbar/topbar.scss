@@ -1,0 +1,39 @@
+@reference "../../../../styles.css";
+
+:host {
+  display: block;
+}
+
+.topbar {
+  @apply flex h-14 items-center justify-between border-b border-glass-border px-4 sm:px-6;
+
+  &__left {
+    @apply flex items-center gap-3;
+  }
+
+  &__title {
+    @apply truncate text-sm font-medium text-surface-fg sm:text-base;
+  }
+
+  &__actions {
+    @apply flex items-center gap-2;
+  }
+
+  &__user {
+    @apply hidden max-w-[10rem] truncate text-sm text-surface-muted-fg sm:inline;
+  }
+
+  &__icon-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg
+      text-surface-muted-fg transition-colors
+      hover:bg-surface-muted hover:text-surface-fg
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500;
+  }
+
+  &__link {
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium
+      text-surface-muted-fg transition-colors
+      hover:bg-surface-muted hover:text-surface-fg
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500;
+  }
+}

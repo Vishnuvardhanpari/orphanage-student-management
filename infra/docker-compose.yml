@@ -1,0 +1,39 @@
+# Local PostgreSQL for OMS development.
+# Run from the repository root with:
+#   docker compose --env-file .env -f infra/docker-compose.yml up -d
+#
+# Requires a root `.env` file (copy from `.env.example` and set DB_PASSWORD).
+
+name: oms-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: oms-postgres
+    restart: unless-stopped
+    ports:
+      # Bind to localhost only — do not expose PostgreSQL on the LAN
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-oms_dev}
+      POSTGRES_USER: ${DB_USERNAME:-oms_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env before starting PostgreSQL}
+    volumes:
+      - oms_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - oms_network
+
+volumes:
+  oms_pg_data:
+    name: oms_pg_data
+
+networks:
+  oms_network:
+    name: oms_network
+    driver: bridge

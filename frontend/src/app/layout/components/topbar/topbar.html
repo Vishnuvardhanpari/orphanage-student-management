@@ -1,0 +1,41 @@
+<header class="topbar glass-panel">
+  <div class="topbar__left">
+    <button
+      type="button"
+      class="topbar__icon-btn md:hidden"
+      aria-label="Open navigation"
+    >
+      <lucide-icon [img]="icons.Menu" [size]="20" aria-hidden="true" />
+    </button>
+    <p class="topbar__title">{{ appName }}</p>
+  </div>
+
+  <div class="topbar__actions">
+    @if (currentUser(); as user) {
+      <span class="topbar__user" [attr.title]="user.email">{{ user.username }}</span>
+    }
+
+    <button
+      type="button"
+      class="topbar__icon-btn"
+      [attr.aria-label]="mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+      (click)="toggleTheme()"
+    >
+      @if (mode() === 'dark') {
+        <lucide-icon [img]="icons.Sun" [size]="18" aria-hidden="true" />
+      } @else {
+        <lucide-icon [img]="icons.Moon" [size]="18" aria-hidden="true" />
+      }
+    </button>
+
+    <button
+      type="button"
+      class="topbar__link"
+      aria-label="Sign out"
+      (click)="logout()"
+    >
+      <lucide-icon [img]="icons.LogOut" [size]="18" aria-hidden="true" />
+      <span class="hidden sm:inline">Logout</span>
+    </button>
+  </div>
+</header>

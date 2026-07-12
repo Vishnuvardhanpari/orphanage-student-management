@@ -1,0 +1,18 @@
+---
+alwaysApply: true
+---
+
+This project follows the documentation inside the docs folder.
+
+Before implementing any feature:
+
+1. Read docs/12_AI_Context.md
+2. Read docs/13_DEVELOPMENT_ROADMAP.md
+3. Read docs/Session_context.md
+4. Read any other relevant documentation in the `docs/` folder for the feature.
+
+Always follow the documented architecture, coding standards, business rules, API design, testing strategy, and deployment strategy.
+
+If documentation conflicts with the request, ask for clarification instead of making assumptions.
+
+Never ignore project documentation.

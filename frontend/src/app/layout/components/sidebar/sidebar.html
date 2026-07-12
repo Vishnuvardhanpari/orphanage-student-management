@@ -1,0 +1,23 @@
+<aside class="sidebar glass-panel" aria-label="Main navigation">
+  <div class="sidebar__brand">
+    <span class="sidebar__brand-mark" aria-hidden="true">OMS</span>
+    <div class="sidebar__brand-text">
+      <span class="sidebar__brand-name">OMS</span>
+      <span class="sidebar__brand-tag">Student Management</span>
+    </div>
+  </div>
+
+  <nav class="sidebar__nav">
+    @for (item of navItems(); track item.path) {
+      <a
+        class="sidebar__link"
+        [routerLink]="item.path"
+        routerLinkActive="sidebar__link--active"
+        [attr.aria-label]="item.label"
+      >
+        <lucide-icon [img]="item.icon" [size]="18" aria-hidden="true" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+</aside>
