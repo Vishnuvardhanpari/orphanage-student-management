@@ -60,3 +60,71 @@
 .student-form__upload-progress-label {
   @apply text-sm font-normal text-surface-muted-fg;
 }
+
+.student-form__loading {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.student-form__hint {
+  @apply text-xs font-normal text-surface-muted-fg;
+}
+
+.student-form__existing-label {
+  @apply mb-2 text-sm font-semibold text-surface-fg;
+}
+
+.student-form__existing-photo {
+  @apply mb-4 flex flex-col items-start gap-2;
+}
+
+.student-form__existing-photo .student-form__existing-label {
+  @apply mb-0;
+}
+
+.student-form__existing-photo-img {
+  @apply h-28 w-28 rounded-lg object-cover ring-1 ring-surface-border;
+}
+
+.student-form__existing-docs {
+  @apply mb-4 flex flex-col gap-2;
+}
+
+.student-form__existing-doc-row {
+  @apply flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-border px-3 py-2 text-sm;
+}
+
+.student-form__existing-doc-row strong {
+  @apply mr-2 font-medium text-surface-fg;
+}
+
+.student-form__existing-doc-row span {
+  @apply text-surface-muted-fg;
+}
+
+.student-form__existing-doc-actions {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.student-form__replace-type select {
+  @apply py-1.5;
+}
+
+.student-form__replace-label {
+  @apply relative inline-flex cursor-pointer;
+}
+
+.student-form__replace-label input {
+  @apply absolute inset-0 h-full w-full cursor-pointer opacity-0;
+}
+
+.student-form__replace-btn {
+  @apply rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-sm font-medium text-surface-fg;
+}
+
+.student-form__media-actions {
+  @apply mt-4 flex flex-wrap gap-3;
+}
+
+.sr-only {
+  @apply sr-only;
+}

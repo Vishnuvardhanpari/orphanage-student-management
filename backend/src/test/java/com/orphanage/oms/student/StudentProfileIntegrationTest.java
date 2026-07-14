@@ -11,8 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orphanage.oms.auth.repository.RefreshTokenRepository;
-import com.orphanage.oms.student.repository.StudentDocumentRepository;
-import com.orphanage.oms.student.repository.StudentRepository;
 import com.orphanage.oms.user.entity.User;
 import com.orphanage.oms.user.enums.AuthProvider;
 import com.orphanage.oms.user.enums.RoleName;
@@ -27,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,18 +53,16 @@ class StudentProfileIntegrationTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
-    private StudentRepository studentRepository;
-
-    @Autowired
-    private StudentDocumentRepository studentDocumentRepository;
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
-        studentDocumentRepository.deleteAll();
-        studentRepository.deleteAll();
+        // Native deletes bypass @SQLRestriction so soft-deleted rows are purged too.
+        jdbcTemplate.update("DELETE FROM student_documents");
+        jdbcTemplate.update("DELETE FROM students");
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
 

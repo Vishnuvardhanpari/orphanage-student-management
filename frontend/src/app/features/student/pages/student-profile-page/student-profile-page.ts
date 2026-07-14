@@ -67,6 +67,14 @@ export class StudentProfilePage implements OnInit, OnDestroy {
     void this.router.navigateByUrl(this.paths.students);
   }
 
+  editStudent(): void {
+    const student = this.student();
+    if (!student) {
+      return;
+    }
+    void this.router.navigateByUrl(`${this.paths.students}/${student.id}/edit`);
+  }
+
   statusLabel(status: StudentStatus): string {
     return status === StudentStatus.Active ? 'Active' : 'Inactive';
   }

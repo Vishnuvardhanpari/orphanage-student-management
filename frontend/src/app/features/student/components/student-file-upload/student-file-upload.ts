@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnDestroy,
+  effect,
   input,
   output,
   signal,
@@ -14,10 +15,10 @@ import {
   PendingDocumentUpload,
   SUPPORTING_DOCUMENT_TYPES,
 } from '../../models/student.models';
-
-const MAX_BYTES = 10 * 1024 * 1024;
-const PHOTO_TYPES = new Set(['image/jpeg', 'image/png']);
-const DOC_TYPES = new Set(['image/jpeg', 'image/png', 'application/pdf']);
+import {
+  documentFileError,
+  photoFileError,
+} from '../../utils/student-file-validation';
 
 @Component({
   selector: 'app-student-file-upload',
@@ -41,6 +42,18 @@ export class StudentFileUpload implements OnDestroy {
 
   private objectUrls: string[] = [];
 
+  constructor() {
+    // Keep the local preview in sync with the parent-owned pending photo so
+    // that clearing the selection upstream (e.g. after a successful replace)
+    // also removes the stale preview.
+    effect(() => {
+      if (this.photo() === null && this.photoPreviewUrl() !== null) {
+        this.revokeUrl(this.photoPreviewUrl());
+        this.photoPreviewUrl.set(null);
+      }
+    });
+  }
+
   ngOnDestroy(): void {
     this.revokeAll();
   }
@@ -52,8 +65,9 @@ export class StudentFileUpload implements OnDestroy {
     if (!file) {
       return;
     }
-    if (!PHOTO_TYPES.has(file.type) || file.size > MAX_BYTES) {
-      this.validationError.emit('Photo must be JPG or PNG and at most 10 MB.');
+    const photoError = photoFileError(file);
+    if (photoError) {
+      this.validationError.emit(photoError);
       return;
     }
     this.revokeUrl(this.photoPreviewUrl());
@@ -79,10 +93,9 @@ export class StudentFileUpload implements OnDestroy {
 
     const next = [...this.documents()];
     for (const file of files) {
-      if (!DOC_TYPES.has(file.type) || file.size > MAX_BYTES) {
-        this.validationError.emit(
-          `${file.name} must be PDF/JPG/PNG and at most 10 MB.`,
-        );
+      const docError = documentFileError(file);
+      if (docError) {
+        this.validationError.emit(docError);
         continue;
       }
       let previewUrl: string | undefined;

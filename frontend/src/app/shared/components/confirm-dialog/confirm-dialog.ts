@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Button } from '../../../../shared/components/button/button';
+import { Button } from '../button/button';
 
 export interface ConfirmDialogData {
   title: string;
@@ -29,7 +29,7 @@ export interface ConfirmDialogData {
     </div>
   `,
   styles: `
-    @reference "../../../../../styles.css";
+    @reference "../../../../styles.css";
     .confirm-dialog {
       @apply min-w-[20rem] max-w-md rounded-xl border border-surface-border bg-surface-elevated p-6 shadow-lg;
     }

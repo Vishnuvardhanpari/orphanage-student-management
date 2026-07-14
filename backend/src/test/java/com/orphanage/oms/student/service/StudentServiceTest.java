@@ -18,6 +18,7 @@ import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
+import com.orphanage.oms.student.dto.UpdateStudentRequest;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
 import com.orphanage.oms.student.enums.DocumentType;
@@ -402,9 +403,381 @@ class StudentServiceTest {
         assertThat(payload.fileName()).isEqualTo("profile-photo.jpg");
     }
 
+    @Test
+    void updateAppliesFieldsAndAudit() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .admissionNumber("ADM-020")
+                .firstName("Old")
+                .gender(Gender.MALE)
+                .dateOfBirth(LocalDate.of(2015, 5, 1))
+                .admissionDate(LocalDate.of(2024, 6, 1))
+                .status(StudentStatus.ACTIVE)
+                .build();
+        UpdateStudentRequest request = sampleUpdateRequest("123456789012");
+        StudentDetailResponse detail = new StudentDetailResponse(
+                studentId,
+                "ADM-020",
+                "Ravi",
+                "Kumar",
+                Gender.MALE,
+                LocalDate.of(2015, 5, 1),
+                null,
+                null,
+                null,
+                "123456789012",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2024, 6, 1),
+                null,
+                null,
+                null,
+                StudentStatus.ACTIVE,
+                false,
+                Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-02T00:00:00Z"));
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.existsByAadhaarNumberIncludingDeletedExcludingId("123456789012", studentId))
+                .thenReturn(false);
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentMapper.toDetailResponse(any(Student.class))).thenReturn(detail);
+
+        StudentDetailResponse response = studentService.update(studentId, request);
+
+        assertThat(response.firstName()).isEqualTo("Ravi");
+        assertThat(student.getAdmissionNumber()).isEqualTo("ADM-020");
+        assertThat(student.getUpdatedBy()).isEqualTo(actorId);
+        verify(studentMapper).updateFromDto(request, student);
+    }
+
+    @Test
+    void updateRejectsDuplicateAadhaarOnAnotherStudent() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder().id(studentId).admissionNumber("ADM-021").build();
+        UpdateStudentRequest request = sampleUpdateRequest("123456789012");
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.existsByAadhaarNumberIncludingDeletedExcludingId("123456789012", studentId))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> studentService.update(studentId, request))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Aadhaar number");
+    }
+
+    @Test
+    void updateRejectsDateOfBirthAfterAdmissionDate() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId))
+                .thenReturn(Optional.of(Student.builder().id(studentId).build()));
+
+        UpdateStudentRequest request = new UpdateStudentRequest(
+                "Ravi",
+                "Kumar",
+                Gender.MALE,
+                LocalDate.of(2020, 1, 1),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2019, 1, 1));
+
+        assertThatThrownBy(() -> studentService.update(studentId, request))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Date of birth must be on or before admission date");
+    }
+
+    @Test
+    void replacePhotoStoresNewAndDeletesOld() throws Exception {
+        UUID studentId = UUID.randomUUID();
+        String oldPath = "student-documents/" + studentId + "/profile-photo.jpg";
+        Student student = Student.builder()
+                .id(studentId)
+                .profilePhotoPath(oldPath)
+                .build();
+        MockMultipartFile photo = new MockMultipartFile(
+                "photo", "new.png", "image/png", new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47});
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(fileValidator.extensionOf("new.png")).thenReturn("png");
+        when(storageService.store(anyString(), anyString(), any(), anyLong()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        studentService.replacePhoto(studentId, photo);
+
+        verify(fileValidator).validatePhoto(photo);
+        verify(storageService).store(
+                eq("student-documents/" + studentId + "/profile-photo.png"),
+                eq("image/png"),
+                any(),
+                eq(4L));
+        verify(storageService).delete(oldPath);
+        assertThat(student.getProfilePhotoPath())
+                .isEqualTo("student-documents/" + studentId + "/profile-photo.png");
+        assertThat(student.getUpdatedBy()).isEqualTo(actorId);
+    }
+
+    @Test
+    void replacePhotoRejectsMissingFile() {
+        UUID studentId = UUID.randomUUID();
+        assertThatThrownBy(() -> studentService.replacePhoto(studentId, null))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Photo is required");
+    }
+
+    @Test
+    void addDocumentsCreatesMetadata() throws Exception {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder().id(studentId).build();
+        MockMultipartFile document = new MockMultipartFile(
+                "documents", "birth.pdf", "application/pdf", "%PDF".getBytes());
+        StudentDocumentResponse mapped = new StudentDocumentResponse(
+                UUID.randomUUID(),
+                DocumentType.BIRTH_CERTIFICATE,
+                "birth.pdf",
+                "application/pdf",
+                4L,
+                Instant.now());
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(fileValidator.extensionOf("birth.pdf")).thenReturn("pdf");
+        when(storageService.store(anyString(), anyString(), any(), anyLong()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentDocumentRepository.save(any(StudentDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentMapper.toDocumentResponse(any(StudentDocument.class))).thenReturn(mapped);
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<StudentDocumentResponse> result = studentService.addDocuments(
+                studentId, List.of(document), List.of("BIRTH_CERTIFICATE"));
+
+        assertThat(result).containsExactly(mapped);
+        verify(fileValidator).validateDocument(document);
+        verify(studentDocumentRepository).save(any(StudentDocument.class));
+        assertThat(student.getUpdatedBy()).isEqualTo(actorId);
+    }
+
+    @Test
+    void replaceDocumentUpdatesMetadataAndDeletesOld() throws Exception {
+        UUID studentId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        String oldPath = "student-documents/" + studentId + "/old.pdf";
+        Student student = Student.builder().id(studentId).build();
+        StudentDocument existing = StudentDocument.builder()
+                .id(documentId)
+                .student(student)
+                .documentType(DocumentType.AADHAAR_CARD)
+                .originalFileName("old.pdf")
+                .storedFileName("old.pdf")
+                .storagePath(oldPath)
+                .contentType("application/pdf")
+                .fileSize(4L)
+                .uploadedDate(Instant.parse("2026-01-01T00:00:00Z"))
+                .build();
+        MockMultipartFile replacement = new MockMultipartFile(
+                "document", "new.pdf", "application/pdf", "%PDF-new".getBytes());
+        StudentDocumentResponse mapped = new StudentDocumentResponse(
+                documentId,
+                DocumentType.IDENTITY_PROOF,
+                "new.pdf",
+                "application/pdf",
+                8L,
+                Instant.now());
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
+                .thenReturn(Optional.of(existing));
+        when(fileValidator.extensionOf("new.pdf")).thenReturn("pdf");
+        when(storageService.store(anyString(), anyString(), any(), anyLong()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentDocumentRepository.save(any(StudentDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentMapper.toDocumentResponse(any(StudentDocument.class))).thenReturn(mapped);
+
+        StudentDocumentResponse response = studentService.replaceDocument(
+                studentId, documentId, replacement, "IDENTITY_PROOF");
+
+        assertThat(response.documentType()).isEqualTo(DocumentType.IDENTITY_PROOF);
+        assertThat(existing.getDocumentType()).isEqualTo(DocumentType.IDENTITY_PROOF);
+        assertThat(existing.getOriginalFileName()).isEqualTo("new.pdf");
+        verify(storageService).delete(oldPath);
+    }
+
+    @Test
+    void replaceDocumentThrowsWhenOwnershipMismatch() {
+        UUID studentId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        MockMultipartFile document = new MockMultipartFile(
+                "document", "file.pdf", "application/pdf", "%PDF".getBytes());
+
+        when(studentRepository.findById(studentId))
+                .thenReturn(Optional.of(Student.builder().id(studentId).build()));
+        when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.replaceDocument(studentId, documentId, document, null))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Document not found");
+    }
+
+    @Test
+    void deletePhotoClearsPathAndRemovesStorageObject() {
+        UUID studentId = UUID.randomUUID();
+        String path = "student-documents/" + studentId + "/profile-photo.jpg";
+        Student student = Student.builder().id(studentId).profilePhotoPath(path).build();
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        studentService.deletePhoto(studentId);
+
+        assertThat(student.getProfilePhotoPath()).isNull();
+        assertThat(student.getUpdatedBy()).isEqualTo(actorId);
+        verify(storageService).delete(path);
+    }
+
+    @Test
+    void deletePhotoThrowsWhenNoPhotoOnFile() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId))
+                .thenReturn(Optional.of(Student.builder().id(studentId).profilePhotoPath(null).build()));
+
+        assertThatThrownBy(() -> studentService.deletePhoto(studentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Profile photo not found");
+        verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void deletePhotoThrowsWhenStudentMissing() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.deletePhoto(studentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Student not found");
+    }
+
+    @Test
+    void deletePhotoSucceedsWhenStorageDeleteFails() {
+        UUID studentId = UUID.randomUUID();
+        String path = "student-documents/" + studentId + "/profile-photo.jpg";
+        Student student = Student.builder().id(studentId).profilePhotoPath(path).build();
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        org.mockito.Mockito.doThrow(new RuntimeException("storage down"))
+                .when(storageService).delete(path);
+
+        studentService.deletePhoto(studentId);
+
+        assertThat(student.getProfilePhotoPath()).isNull();
+    }
+
+    @Test
+    void deleteDocumentSoftDeletesAndRetainsStorageObject() {
+        UUID studentId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        Student student = Student.builder().id(studentId).build();
+        StudentDocument document = StudentDocument.builder()
+                .id(documentId)
+                .student(student)
+                .documentType(DocumentType.AADHAAR_CARD)
+                .originalFileName("aadhaar.pdf")
+                .storedFileName("aadhaar.pdf")
+                .storagePath("student-documents/" + studentId + "/aadhaar.pdf")
+                .contentType("application/pdf")
+                .fileSize(4L)
+                .uploadedDate(Instant.parse("2026-01-01T00:00:00Z"))
+                .build();
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
+                .thenReturn(Optional.of(document));
+        when(studentDocumentRepository.save(any(StudentDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        studentService.deleteDocument(studentId, documentId);
+
+        assertThat(document.isDeleted()).isTrue();
+        assertThat(document.getDeletedDate()).isNotNull();
+        assertThat(student.getUpdatedBy()).isEqualTo(actorId);
+        verify(storageService, never()).delete(anyString());
+    }
+
+    @Test
+    void deleteDocumentThrowsWhenOwnershipMismatch() {
+        UUID studentId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId))
+                .thenReturn(Optional.of(Student.builder().id(studentId).build()));
+        when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.deleteDocument(studentId, documentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Document not found");
+        verify(studentDocumentRepository, never()).save(any());
+    }
+
     private CreateStudentRequest sampleRequest(String admissionNumber, String aadhaar) {
         return new CreateStudentRequest(
                 admissionNumber,
+                "Ravi",
+                "Kumar",
+                Gender.MALE,
+                LocalDate.of(2015, 5, 1),
+                null,
+                null,
+                null,
+                aadhaar,
+                null,
+                "Guardian",
+                "Uncle",
+                "9876543210",
+                "Address",
+                "School",
+                "5",
+                "English",
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2024, 6, 1));
+    }
+
+    private UpdateStudentRequest sampleUpdateRequest(String aadhaar) {
+        return new UpdateStudentRequest(
                 "Ravi",
                 "Kumar",
                 Gender.MALE,

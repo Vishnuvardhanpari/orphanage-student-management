@@ -124,7 +124,7 @@ Public auth endpoints (no JWT required): `/auth/login`, `/auth/google`, `/auth/r
 
 Base path: `/api/v1/students`
 
-Authorization: JWT required. `ADMIN` or `STAFF` may register students, view profiles, list documents, and download files.
+Authorization: JWT required. `ADMIN` or `STAFF` may register students, view and update profiles, manage photos/documents, list documents, and download files.
 
 ## Register student (Milestone 5)
 
@@ -234,6 +234,139 @@ Document must belong to the given student and not be soft-deleted.
 
 ---
 
+## Update student fields (Milestone 7)
+
+`PUT /students/{id}`
+
+`Content-Type: application/json`
+
+Updates editable student fields only. Photo and supporting documents use the dedicated endpoints below.
+
+### UpdateStudentRequest
+
+Required: `firstName`, `gender`, `dateOfBirth`, `admissionDate`
+
+Optional: `lastName`, `bloodGroup`, `religion`, `nationality`, `aadhaarNumber` (12 digits if set), `phoneNumber`, guardian fields, education fields, medical fields
+
+**Not accepted / immutable:** `admissionNumber` (cannot change after creation), `status`, exit fields, soft-delete fields, audit create fields
+
+Cross-field: `dateOfBirth` must be on or before `admissionDate`.
+
+Aadhaar uniqueness: if provided, must not belong to another student (including soft-deleted rows). The current student's own Aadhaar is allowed.
+
+### Response `200 OK`
+
+`StudentDetailResponse` (same shape as Get student profile). Soft-deleted or unknown → `404`.
+
+### Errors
+
+* `400` — validation / DOB after admission date
+* `401` / `403` — as above
+* `404` — student not found
+* `409` — Aadhaar number already in use by another student
+
+---
+
+## Replace profile photo (Milestone 7)
+
+`PUT /students/{id}/photo`
+
+`Content-Type: multipart/form-data`
+
+| Part | Type | Required | Description |
+|------|------|----------|-------------|
+| `photo` | file | Yes | Profile photo (JPG/JPEG/PNG, max 10 MB) |
+
+Replaces `profile_photo_path`. Old storage object is removed after the new file is stored and the DB path is updated. Not stored as a `PHOTOGRAPH` document row.
+
+### Response `204 No Content`
+
+### Errors
+
+* `400` — missing/invalid/oversized file
+* `401` / `403` — as above
+* `404` — student not found
+
+---
+
+## Add supporting documents (Milestone 7)
+
+`POST /students/{id}/documents`
+
+`Content-Type: multipart/form-data`
+
+| Part / field | Type | Required | Description |
+|--------------|------|----------|-------------|
+| `documents` | file (repeatable) | Yes (at least one) | Supporting documents (PDF/JPG/JPEG/PNG, max 10 MB each) |
+| `documentTypes` | string (repeatable) | Yes | Parallel `DocumentType` values (not `PHOTOGRAPH`); count must match `documents` |
+
+### Response `201 Created`
+
+Array of `StudentDocumentResponse` for the newly created document rows.
+
+### Errors
+
+* `400` — validation / mismatched counts / `PHOTOGRAPH` type / empty upload
+* `401` / `403` — as above
+* `404` — student not found
+
+---
+
+## Replace supporting document (Milestone 7)
+
+`PUT /students/{id}/documents/{documentId}`
+
+`Content-Type: multipart/form-data`
+
+| Part / field | Type | Required | Description |
+|--------------|------|----------|-------------|
+| `document` | file | Yes | Replacement file (PDF/JPG/JPEG/PNG, max 10 MB) |
+| `documentType` | string | No | If present, updates `DocumentType` (not `PHOTOGRAPH`) |
+
+Document must belong to the given student and not be soft-deleted. Old storage object is removed after the new file is stored and metadata is updated.
+
+### Response `200 OK`
+
+`StudentDocumentResponse` for the updated document.
+
+### Errors
+
+* `400` — validation / invalid type
+* `401` / `403` — as above
+* `404` — student or document not found / ownership mismatch
+
+---
+
+## Remove profile photo (Milestone 7 QA — BUG-007)
+
+`DELETE /students/{id}/photo`
+
+Clears `profile_photo_path` and removes the storage object (best effort; DB is the source of truth).
+
+### Response `204 No Content`
+
+### Errors
+
+* `401` / `403` — as above
+* `404` — student not found, or no photo on file
+
+---
+
+## Delete supporting document (Milestone 7 QA — BUG-007)
+
+`DELETE /students/{id}/documents/{documentId}`
+
+Logical (soft) delete: sets `deleted = true` and `deleted_date`. The storage object is retained for historical recovery. The document disappears from listing, download, and further replace/delete calls.
+
+### Response `204 No Content`
+
+### Errors
+
+* `401` / `403` — as above
+* `404` — student or document not found / ownership mismatch / already deleted
+
+---
+
 GET
 
 ```
@@ -274,12 +407,31 @@ PUT
 /students/{id}
 ```
 
-Supports
+*(See Update student fields above.)*
 
-* Update Student
-* Replace Documents
-* Upload Additional Documents
-*(Milestone 7)*
+PUT
+
+```
+/students/{id}/photo
+```
+
+*(See Replace profile photo above.)*
+
+POST
+
+```
+/students/{id}/documents
+```
+
+*(See Add supporting documents above.)*
+
+PUT
+
+```
+/students/{id}/documents/{documentId}
+```
+
+*(See Replace supporting document above.)*
 
 DELETE
 
@@ -307,21 +459,13 @@ Documents are managed through Student APIs.
 
 There are no standalone CRUD APIs for document management.
 
-Milestone 6 endpoints:
+Milestone 6–7 endpoints:
 
 * `GET /students/{id}/documents` — list
 * `GET /students/{id}/documents/{documentId}/download` — download
-
-Later milestones:
-
-DELETE
-
-```
-/students/{id}/documents/{documentId}
-```
-
-Logical document removal.
-*(Milestone 7+)*
+* `POST /students/{id}/documents` — add
+* `PUT /students/{id}/documents/{documentId}` — replace
+* `DELETE /students/{id}/documents/{documentId}` — logical removal (Milestone 7 QA, BUG-007)
 
 ---
 

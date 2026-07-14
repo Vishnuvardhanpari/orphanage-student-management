@@ -1,8 +1,14 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { NotificationService } from '../services/notification.service';
 import { ApiErrorResponse } from '../models/api-error-response';
+
+/**
+ * Opt-out for requests whose callers show their own contextual error toast
+ * (e.g. blob streams whose error bodies cannot be resolved to a message here).
+ */
+export const SKIP_ERROR_TOAST = new HttpContextToken<boolean>(() => false);
 
 /**
  * Maps HTTP failures to user-facing toast notifications.
@@ -13,8 +19,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      const message = resolveErrorMessage(error);
-      notifications.error(message);
+      if (!req.context.get(SKIP_ERROR_TOAST)) {
+        notifications.error(resolveErrorMessage(error));
+      }
       return throwError(() => error);
     }),
   );

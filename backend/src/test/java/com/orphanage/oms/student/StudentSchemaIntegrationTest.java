@@ -13,6 +13,7 @@ import jakarta.persistence.PersistenceException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,6 +37,14 @@ class StudentSchemaIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @BeforeEach
+    void purgeStudentData() {
+        // Other integration suites may leave soft-deleted rows behind in the shared
+        // in-memory DB; native deletes bypass @SQLRestriction and remove them all.
+        jdbcTemplate.update("DELETE FROM student_documents");
+        jdbcTemplate.update("DELETE FROM students");
+    }
 
     @Test
     void flywayMigrationV4IsOnClasspath() {

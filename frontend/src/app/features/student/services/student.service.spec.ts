@@ -6,6 +6,7 @@ import {
 } from '@angular/common/http/testing';
 import { environment } from '../../../../environments/environment';
 import { API_PATHS } from '../../../core/constants/api-paths';
+import { SKIP_ERROR_TOAST } from '../../../core/interceptors/error.interceptor';
 import {
   DocumentType,
   Gender,
@@ -198,5 +199,177 @@ describe('StudentService', () => {
     expect(req.request.responseType).toBe('blob');
     req.flush(new Blob(['img'], { type: 'image/jpeg' }));
     expect(size).toBeGreaterThan(0);
+  });
+
+  it('marks blob requests to skip the global error toast', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    const documentId = '22222222-2222-2222-2222-222222222222';
+
+    service.fetchPhoto(studentId).subscribe();
+    const photoReq = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/photo`,
+    );
+    expect(photoReq.request.context.get(SKIP_ERROR_TOAST)).toBeTrue();
+    photoReq.flush(new Blob(['img']));
+
+    service.downloadDocument(studentId, documentId).subscribe();
+    const downloadReq = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/documents/${documentId}/download`,
+    );
+    expect(downloadReq.request.context.get(SKIP_ERROR_TOAST)).toBeTrue();
+    downloadReq.flush(new Blob(['pdf']));
+  });
+
+  it('deletes the profile photo via DELETE', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    let completed = false;
+    service.deletePhoto(studentId).subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/photo`,
+    );
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+    expect(completed).toBeTrue();
+  });
+
+  it('deletes a document via DELETE', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    const documentId = '22222222-2222-2222-2222-222222222222';
+    let completed = false;
+    service.deleteDocument(studentId, documentId).subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/documents/${documentId}`,
+    );
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+    expect(completed).toBeTrue();
+  });
+
+  it('updates student fields via PUT', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    let firstName = '';
+    service
+      .update(studentId, {
+        firstName: 'Anita',
+        gender: Gender.Female,
+        dateOfBirth: '2014-03-15',
+        admissionDate: '2024-06-01',
+      })
+      .subscribe((detail) => {
+        firstName = detail.firstName;
+      });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}`,
+    );
+    expect(req.request.method).toBe('PUT');
+    req.flush({
+      id: studentId,
+      admissionNumber: 'ADM-1',
+      firstName: 'Anita',
+      lastName: null,
+      gender: Gender.Female,
+      dateOfBirth: '2014-03-15',
+      bloodGroup: null,
+      religion: null,
+      nationality: null,
+      aadhaarNumber: null,
+      phoneNumber: null,
+      guardianName: null,
+      guardianRelationship: null,
+      guardianPhone: null,
+      guardianAddress: null,
+      schoolName: null,
+      standard: null,
+      medium: null,
+      previousSchool: null,
+      medicalConditions: null,
+      allergies: null,
+      disability: null,
+      emergencyNotes: null,
+      admissionDate: '2024-06-01',
+      exitDate: null,
+      exitReason: null,
+      exitRemarks: null,
+      status: StudentStatus.Active,
+      hasProfilePhoto: false,
+      createdDate: '2026-01-01T00:00:00Z',
+      updatedDate: '2026-01-02T00:00:00Z',
+    });
+    expect(firstName).toBe('Anita');
+  });
+
+  it('replaces photo via multipart PUT', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    const photo = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
+    let completed = false;
+    service.replacePhoto(studentId, photo).subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/photo`,
+    );
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body instanceof FormData).toBeTrue();
+    req.flush(null);
+    expect(completed).toBeTrue();
+  });
+
+  it('adds documents via multipart POST', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    const doc = new File(['pdf'], 'birth.pdf', { type: 'application/pdf' });
+    let count = 0;
+    service
+      .addDocuments(studentId, [{ file: doc, documentType: DocumentType.BirthCertificate }])
+      .subscribe((docs) => {
+        count = docs.length;
+      });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/documents`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush([
+      {
+        id: '22222222-2222-2222-2222-222222222222',
+        documentType: DocumentType.BirthCertificate,
+        originalFileName: 'birth.pdf',
+        contentType: 'application/pdf',
+        fileSize: 4,
+        uploadedDate: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    expect(count).toBe(1);
+  });
+
+  it('replaces a document via multipart PUT', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    const documentId = '22222222-2222-2222-2222-222222222222';
+    const file = new File(['pdf'], 'identity.pdf', { type: 'application/pdf' });
+    let name = '';
+    service.replaceDocument(studentId, documentId, file, DocumentType.IdentityProof).subscribe((doc) => {
+      name = doc.originalFileName;
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/documents/${documentId}`,
+    );
+    expect(req.request.method).toBe('PUT');
+    req.flush({
+      id: documentId,
+      documentType: DocumentType.IdentityProof,
+      originalFileName: 'identity.pdf',
+      contentType: 'application/pdf',
+      fileSize: 8,
+      uploadedDate: '2026-01-02T00:00:00Z',
+    });
+    expect(name).toBe('identity.pdf');
   });
 });

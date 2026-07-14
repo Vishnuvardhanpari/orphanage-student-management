@@ -18,7 +18,7 @@ import { PageHeader } from '../../../../shared/components/page-header/page-heade
 import {
   ConfirmDialog,
   ConfirmDialogData,
-} from '../../components/confirm-dialog/confirm-dialog';
+} from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import {
   ResetPasswordDialog,
   ResetPasswordDialogData,
