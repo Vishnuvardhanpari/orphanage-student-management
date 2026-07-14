@@ -217,7 +217,7 @@ Audit Table
 
 Admission Number
 
-UNIQUE
+UNIQUE on `LOWER(admission_number)` (case-insensitive; Flyway `V5__admission_number_case_insensitive_unique.sql`)
 
 Aadhaar Number
 

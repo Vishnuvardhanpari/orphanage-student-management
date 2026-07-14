@@ -45,6 +45,13 @@ class StudentSchemaIntegrationTest {
     }
 
     @Test
+    void flywayMigrationV5IsOnClasspath() {
+        ClassPathResource migration =
+                new ClassPathResource("db/migration/V5__admission_number_case_insensitive_unique.sql");
+        assertThat(migration.exists()).isTrue();
+    }
+
+    @Test
     void hibernateCreatesStudentTables() {
         assertThat(tableExists("students")).isTrue();
         assertThat(tableExists("student_documents")).isTrue();

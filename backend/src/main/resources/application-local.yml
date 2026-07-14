@@ -18,6 +18,10 @@ management:
 oms:
   cors:
     allowed-origins: ${OMS_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  storage:
+    type: local
+    local:
+      base-path: ${OMS_STORAGE_LOCAL_PATH:./storage}
 
 logging:
   level:

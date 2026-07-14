@@ -23,6 +23,10 @@ management:
 oms:
   cors:
     allowed-origins: ${OMS_CORS_ALLOWED_ORIGINS:}
+  storage:
+    type: gcs
+    gcs:
+      bucket: ${GCS_BUCKET_NAME}
 
 springdoc:
   api-docs:

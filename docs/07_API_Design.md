@@ -122,6 +122,51 @@ Public auth endpoints (no JWT required): `/auth/login`, `/auth/google`, `/auth/r
 
 # Students
 
+Base path: `/api/v1/students`
+
+Authorization: JWT required. `ADMIN` or `STAFF` may register students.
+
+## Register student (Milestone 5)
+
+`POST /students`
+
+`Content-Type: multipart/form-data`
+
+| Part / field | Type | Required | Description |
+|--------------|------|----------|-------------|
+| `data` | JSON (`application/json`) | Yes | `CreateStudentRequest` body |
+| `photo` | file | No | Profile photo (JPG/JPEG/PNG, max 10 MB) |
+| `documents` | file (repeatable) | No | Supporting documents (PDF/JPG/JPEG/PNG, max 10 MB each) |
+| `documentTypes` | string (repeatable) | Yes if `documents` present | Parallel `DocumentType` enum values (not `PHOTOGRAPH`) |
+
+### CreateStudentRequest
+
+Required: `admissionNumber`, `firstName`, `gender`, `dateOfBirth`, `admissionDate`
+
+Optional: `lastName`, `bloodGroup`, `religion`, `nationality`, `aadhaarNumber` (12 digits if set), `phoneNumber`, guardian fields, education fields, medical fields
+
+Not accepted: `status` (always `ACTIVE`), exit fields, soft-delete fields
+
+### Response `201 Created`
+
+```json
+{
+  "id": "uuid",
+  "admissionNumber": "ADM-100",
+  "status": "ACTIVE",
+  "createdDate": "2026-07-13T05:00:00Z"
+}
+```
+
+### Errors
+
+* `400` — validation / invalid file / mismatched `documents` and `documentTypes`
+* `401` — unauthenticated
+* `403` — authenticated but not ADMIN/STAFF
+* `409` — duplicate admission number or Aadhaar
+
+---
+
 GET
 
 ```
@@ -151,6 +196,7 @@ Supports
 * Student Details
 * Student Photo Upload
 * Multiple Document Upload
+*(See Register student section above for the Milestone 5 multipart contract.)*
 
 PUT
 

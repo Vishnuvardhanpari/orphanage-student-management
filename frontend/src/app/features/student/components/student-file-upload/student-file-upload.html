@@ -1,0 +1,79 @@
+<section class="file-upload">
+  <div class="file-upload__block">
+    <h3 class="file-upload__heading">Student photo</h3>
+    <p class="file-upload__hint">Optional. JPG or PNG, max 10 MB.</p>
+
+    @if (photoPreviewUrl(); as preview) {
+      <div class="file-upload__preview">
+        <img [src]="preview" alt="Student photo preview" />
+        <app-button type="button" variant="ghost" size="sm" (pressed)="clearPhoto()">
+          <lucide-icon [img]="icons.Trash2" [size]="16" aria-hidden="true" />
+          Remove
+        </app-button>
+      </div>
+    } @else {
+      <label class="file-upload__drop">
+        <lucide-icon [img]="icons.Image" [size]="20" aria-hidden="true" />
+        <span>Choose photo</span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+          (change)="onPhotoSelected($event)"
+        />
+      </label>
+    }
+  </div>
+
+  <div class="file-upload__block">
+    <h3 class="file-upload__heading">Supporting documents</h3>
+    <p class="file-upload__hint">Optional. PDF, JPG, or PNG, max 10 MB each.</p>
+
+    <label class="file-upload__drop">
+      <lucide-icon [img]="icons.Upload" [size]="20" aria-hidden="true" />
+      <span>Add documents</span>
+      <input
+        type="file"
+        multiple
+        accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+        (change)="onDocumentsSelected($event)"
+      />
+    </label>
+
+    @if (documents().length > 0) {
+      <ul class="file-upload__list">
+        @for (doc of documents(); track $index) {
+          <li class="file-upload__item">
+            @if (doc.previewUrl) {
+              <img class="file-upload__thumb" [src]="doc.previewUrl" [alt]="doc.file.name" />
+            } @else {
+              <lucide-icon [img]="icons.FileText" [size]="24" aria-hidden="true" />
+            }
+            <div class="file-upload__meta">
+              <span class="file-upload__name">{{ doc.file.name }}</span>
+              <label class="file-upload__type">
+                <span class="sr-only">Document type</span>
+                <select
+                  [ngModel]="doc.documentType"
+                  (ngModelChange)="updateDocumentType($index, $event)"
+                >
+                  @for (type of documentTypes; track type) {
+                    <option [ngValue]="type">{{ documentTypeLabel(type) }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            <app-button
+              type="button"
+              variant="ghost"
+              size="sm"
+              (pressed)="removeDocument($index)"
+              aria-label="Remove document"
+            >
+              <lucide-icon [img]="icons.Trash2" [size]="16" aria-hidden="true" />
+            </app-button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>

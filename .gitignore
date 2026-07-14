@@ -58,6 +58,11 @@ cypress/screenshots/
 *.tar.gz
 *.rar
 
+# --- Local file storage (dev uploads, not source) ---
+/storage/
+/backend/storage/
+!/backend/src/main/java/com/orphanage/oms/storage/
+
 # --- Legacy (retained from initial template) ---
 *.ctxt
 .mtj.tmp/
