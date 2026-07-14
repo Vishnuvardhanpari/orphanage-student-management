@@ -1,0 +1,250 @@
+package com.orphanage.oms.student.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.orphanage.oms.exception.ApiException;
+import com.orphanage.oms.security.UserPrincipal;
+import com.orphanage.oms.storage.StorageService;
+import com.orphanage.oms.student.dto.CreateStudentRequest;
+import com.orphanage.oms.student.dto.StudentCreatedResponse;
+import com.orphanage.oms.student.entity.Student;
+import com.orphanage.oms.student.entity.StudentDocument;
+import com.orphanage.oms.student.enums.Gender;
+import com.orphanage.oms.student.enums.StudentStatus;
+import com.orphanage.oms.student.mapper.StudentMapper;
+import com.orphanage.oms.student.repository.StudentDocumentRepository;
+import com.orphanage.oms.student.repository.StudentRepository;
+import com.orphanage.oms.user.entity.Role;
+import com.orphanage.oms.user.entity.User;
+import com.orphanage.oms.user.enums.AuthProvider;
+import com.orphanage.oms.user.enums.RoleName;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+@ExtendWith(MockitoExtension.class)
+class StudentServiceTest {
+
+    @Mock
+    private StudentRepository studentRepository;
+    @Mock
+    private StudentDocumentRepository studentDocumentRepository;
+    @Mock
+    private StudentMapper studentMapper;
+    @Mock
+    private StudentFileValidator fileValidator;
+    @Mock
+    private StorageService storageService;
+
+    @InjectMocks
+    private StudentService studentService;
+
+    private UUID actorId;
+
+    @BeforeEach
+    void setUp() {
+        actorId = UUID.randomUUID();
+        Role staffRole = Role.builder().id(UUID.randomUUID()).name(RoleName.STAFF).description("Staff").build();
+        User actor = User.builder()
+                .id(actorId)
+                .username("staff")
+                .email("staff@oms.local")
+                .passwordHash("hash")
+                .authProvider(AuthProvider.LOCAL)
+                .role(staffRole)
+                .enabled(true)
+                .accountNonLocked(true)
+                .failedLoginAttempts(0)
+                .build();
+        UserPrincipal principal = new UserPrincipal(actor);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void createPersistsStudentWithoutFiles() {
+        CreateStudentRequest request = sampleRequest("ADM-001", null);
+        Student entity = Student.builder().build();
+        UUID studentId = UUID.randomUUID();
+        Instant created = Instant.parse("2026-01-01T00:00:00Z");
+
+        when(studentRepository.existsByAdmissionNumberIgnoreCaseIncludingDeleted("ADM-001")).thenReturn(false);
+        when(studentMapper.toEntity(request)).thenReturn(entity);
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> {
+            Student s = invocation.getArgument(0);
+            if (s.getId() == null) {
+                s.setId(studentId);
+            }
+            s.setCreatedDate(created);
+            s.setUpdatedDate(created);
+            return s;
+        });
+        when(studentMapper.toCreatedResponse(any(Student.class))).thenReturn(
+                new StudentCreatedResponse(studentId, "ADM-001", StudentStatus.ACTIVE, created));
+
+        StudentCreatedResponse response = studentService.create(request, null, null, null);
+
+        assertThat(response.admissionNumber()).isEqualTo("ADM-001");
+        assertThat(response.status()).isEqualTo(StudentStatus.ACTIVE);
+        verify(storageService, never()).store(anyString(), anyString(), any(), anyLong());
+        verify(studentDocumentRepository, never()).save(any());
+
+        ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(captor.capture());
+        assertThat(captor.getValue().getCreatedBy()).isEqualTo(actorId);
+        assertThat(captor.getValue().getStatus()).isEqualTo(StudentStatus.ACTIVE);
+    }
+
+    @Test
+    void createRejectsDuplicateAdmissionNumber() {
+        CreateStudentRequest request = sampleRequest("ADM-001", null);
+        when(studentRepository.existsByAdmissionNumberIgnoreCaseIncludingDeleted("ADM-001")).thenReturn(true);
+
+        assertThatThrownBy(() -> studentService.create(request, null, List.of(), List.of()))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Admission number");
+    }
+
+    @Test
+    void createStoresPhotoAndDocuments() throws Exception {
+        CreateStudentRequest request = sampleRequest("ADM-002", null);
+        Student entity = Student.builder().build();
+        UUID studentId = UUID.randomUUID();
+
+        MockMultipartFile photo = new MockMultipartFile(
+                "photo", "photo.jpg", "image/jpeg", new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
+        MockMultipartFile document = new MockMultipartFile(
+                "documents", "aadhaar.pdf", "application/pdf", "%PDF".getBytes());
+
+        when(studentRepository.existsByAdmissionNumberIgnoreCaseIncludingDeleted("ADM-002")).thenReturn(false);
+        when(studentMapper.toEntity(request)).thenReturn(entity);
+        when(fileValidator.extensionOf("photo.jpg")).thenReturn("jpg");
+        when(fileValidator.extensionOf("aadhaar.pdf")).thenReturn("pdf");
+        when(storageService.store(anyString(), anyString(), any(), anyLong()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> {
+            Student s = invocation.getArgument(0);
+            if (s.getId() == null) {
+                s.setId(studentId);
+            }
+            s.setCreatedDate(Instant.now());
+            s.setUpdatedDate(Instant.now());
+            return s;
+        });
+        when(studentDocumentRepository.save(any(StudentDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentMapper.toCreatedResponse(any(Student.class))).thenReturn(
+                new StudentCreatedResponse(studentId, "ADM-002", StudentStatus.ACTIVE, Instant.now()));
+
+        studentService.create(request, photo, List.of(document), List.of("AADHAAR_CARD"));
+
+        verify(fileValidator).validatePhoto(photo);
+        verify(fileValidator).validateDocument(document);
+        verify(storageService).store(
+                org.mockito.ArgumentMatchers.startsWith("student-documents/"),
+                eq("image/jpeg"),
+                any(),
+                eq(3L));
+        verify(storageService).store(
+                org.mockito.ArgumentMatchers.contains("aadhaar_card-"),
+                eq("application/pdf"),
+                any(),
+                eq(4L));
+        verify(studentDocumentRepository).save(any(StudentDocument.class));
+    }
+
+    @Test
+    void createRejectsDateOfBirthAfterAdmissionDate() {
+        CreateStudentRequest request = new CreateStudentRequest(
+                "ADM-004",
+                "Ravi",
+                "Kumar",
+                Gender.MALE,
+                LocalDate.of(2020, 1, 1),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2019, 1, 1));
+
+        assertThatThrownBy(() -> studentService.create(request, null, List.of(), List.of()))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Date of birth must be on or before admission date");
+    }
+
+    @Test
+    void createRejectsMismatchedDocumentTypes() {
+        CreateStudentRequest request = sampleRequest("ADM-003", null);
+        MockMultipartFile document = new MockMultipartFile(
+                "documents", "aadhaar.pdf", "application/pdf", new byte[] {1});
+
+        assertThatThrownBy(() -> studentService.create(request, null, List.of(document), List.of()))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("documentTypes");
+    }
+
+    private CreateStudentRequest sampleRequest(String admissionNumber, String aadhaar) {
+        return new CreateStudentRequest(
+                admissionNumber,
+                "Ravi",
+                "Kumar",
+                Gender.MALE,
+                LocalDate.of(2015, 5, 1),
+                null,
+                null,
+                null,
+                aadhaar,
+                null,
+                "Guardian",
+                "Uncle",
+                "9876543210",
+                "Address",
+                "School",
+                "5",
+                "English",
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2024, 6, 1));
+    }
+}

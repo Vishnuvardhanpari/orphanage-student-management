@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 4 — Student Database Design (implementation on `milestone/student-database`)
+Milestone 5 — Student Registration (implementation on `milestone/student-registration`)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 4 — Student Database Design
+Milestone 5 — Student Registration
 
 ---
 
@@ -115,7 +115,7 @@ Milestone 4 — Student Database Design
 
 ---
 
-## Milestone 4 — Student Database Design (in progress on `milestone/student-database`)
+## Milestone 4 — Student Database Design (merged to `main`)
 
 ### Backend
 
@@ -125,39 +125,64 @@ Milestone 4 — Student Database Design
 * Indexes including composite `(deleted, status)`
 * JPA entities: `Student`, `StudentDocument` with `@SQLRestriction("deleted = false")`
 * Enums: `Gender`, `StudentStatus`, `DocumentType`
-* Schema IT: `StudentSchemaIntegrationTest` (H2 + Hibernate; asserts V4 migration on classpath)
-* Column `exit_remarks` added (from requirements); synced into `docs/06_Database_Design.md`
+* Schema IT: `StudentSchemaIntegrationTest`
+* Column `exit_remarks` added; synced into `docs/06_Database_Design.md`
 
-### Out of scope (Milestone 5+)
+---
 
-* Student CRUD APIs / DTOs / services / controllers
-* Repositories
-* Frontend registration / uploads / GCS
+## Milestone 5 — Student Registration (in progress on `milestone/student-registration`)
+
+### Backend
+
+* `StorageService` abstraction: local filesystem (`local`/`dev`/`test`) and GCS HTTP API (`prod`)
+* Multipart limits: 10 MB/file, 50 MB/request
+* `POST /api/v1/students` (multipart) for ADMIN/STAFF
+* DTOs, MapStruct mapper, repositories, file validator (extension + MIME + size + magic bytes), audit fields
+* Optional photo → `profile_photo_path`; supporting docs → `student_documents`
+* Flyway `V5`: case-insensitive unique index on `LOWER(admission_number)`
+* Uniqueness checks include soft-deleted rows; `DataIntegrityViolationException` → 409; multipart size → `ApiErrorResponse` 400
+* Cross-field rule: date of birth on or before admission date
+* Unit + integration tests for registration and local storage
+
+### Frontend
+
+* Registration form at `/students/new` (reactive forms, sections, validation)
+* Past-or-present date validators + DOB ≤ admission date; `max` on date inputs
+* Photo + supporting document upload UI with preview and upload progress
+* List/form navigation via `app-button` + router (no button nested in anchor)
+* `StudentService.create` via `FormData` with `reportProgress`
+
+### Milestone 5 QA bug fixes (BUG-001–009)
+
+* BUG-001–009 resolved on `milestone/student-registration` (GitHub #9–#17)
+
+### Out of scope (Milestone 6+)
+
+* List / search / GET by id / update / profile / soft delete / restore / document download
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–3. Student schema specifics:
+Unchanged from Milestone 1–4. Student registration specifics:
 
-* Denormalized student row (guardian / education / medical inline)
-* Soft delete on students and documents; never physical student delete
-* Profile photo path on `students`; supporting docs metadata in `student_documents`
-* Gender: `MALE` | `FEMALE` | `OTHER`
-* Status: `ACTIVE` | `INACTIVE`
+* Create-only multipart API; profile photo is not stored as a `PHOTOGRAPH` document row
+* Storage provider selected by `oms.storage.type` (profile-driven DI)
+* GCS uses Application Default Credentials + JSON upload API (no full google-cloud-storage SDK)
+* Admission number uniqueness is case-insensitive at DB and application layers; soft-deleted rows remain reserved
 
 ---
 
 # Current Objective
 
-Complete Milestone 4 review/approval, then commit on `milestone/student-database`.
+Complete Milestone 5 self-review / independent review / approval after BUG-001–009 fixes, then commit on `milestone/student-registration`.
 
 ---
 
 # Current Branch
 
 ```text
-milestone/student-database
+milestone/student-registration
 ```
 
 ---
@@ -168,14 +193,15 @@ milestone/student-database
 * Spring Security + JWT + Google OAuth (GIS ID token)
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
-* `@SQLRestriction` hides soft-deleted rows by default; restore queries (later) must bypass explicitly
+* `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore queries must bypass explicitly (native/`@Query`)
+* Milestone 5 = registration only
 
 ---
 
 # Pending Milestones
 
-* Milestone 4 — Student Database Design (await approval / commit)
-* Milestone 5 — Student Registration
+* Milestone 5 — Student Registration (await review / approval / commit after QA bug fixes)
+* Milestone 6 — Student Profile
 * … (see roadmap)
 
 ---
@@ -190,9 +216,9 @@ None.
 
 # Next Session Goal
 
-1. User approval of Milestone 4 schema + entities
-2. Commit on `milestone/student-database` when requested
-3. Start Milestone 5 — Student Registration (CRUD + form + uploads)
+1. User approval of Milestone 5 registration API + form (including BUG-001–009 fixes)
+2. Commit on `milestone/student-registration` when requested
+3. Start Milestone 6 — Student Profile after merge
 
 ---
 

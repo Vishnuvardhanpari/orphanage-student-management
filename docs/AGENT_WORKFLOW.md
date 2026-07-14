@@ -56,17 +56,56 @@ Do not load unnecessary documentation.
 
 ---
 
-# Git Branch Verification (Mandatory)
 
-Before starting any new milestone or major feature, verify that development is being performed on the correct Git branch.
+# Standard Workflow
 
-## Branch Strategy
+Every milestone must follow this lifecycle.
+
+```text
+Planning
+      ↓
+Architecture Review
+      ↓
+Approval
+      ↓
+Git Branch Verification
+      ↓
+Create / Switch to Milestone Branch
+      ↓
+Implementation
+      ↓
+Self Review
+      ↓
+Independent Review
+      ↓
+Approval
+      ↓
+Update Session Context
+      ↓
+Recommend Git Commit
+      ↓
+Milestone Complete
+```
+
+Never skip any step.
+
+---
+
+Git Branch Verification (Mandatory)
+
+Git branches are created only after the implementation plan has been reviewed and approved.
+
+This ensures:
+
+The implementation scope is finalized.
+The architecture is approved.
+No unnecessary branches are created for discarded or revised plans.
+Branch Strategy
 
 Every milestone must be developed in its own dedicated Git branch.
 
 Examples:
 
-```text
 milestone/project-initialization
 milestone/authentication
 milestone/user-management
@@ -76,13 +115,11 @@ milestone/student-profile
 milestone/student-search
 milestone/report-export
 milestone/dashboard
-```
 
-If a milestone is large, feature branches may be created.
+If a milestone is large, feature branches may be created under the milestone.
 
 Examples:
 
-```text
 feature/auth-jwt
 feature/auth-google-oauth
 feature/auth-refresh-token
@@ -92,61 +129,46 @@ feature/student-search
 
 feature/report-single-pdf
 feature/report-bulk-pdf
-```
+AI Workflow
 
-## Mandatory AI Workflow
+After the Architecture Review has been approved, but before any implementation begins, the AI agent must:
 
-Before Planning begins, the AI agent must:
-
-1. Ask which Git branch is currently checked out.
-2. Determine whether it matches the current milestone.
-3. If not, recommend the Git commands to create or switch to the correct branch.
-4. Wait for confirmation before continuing.
+Verify the current Git branch.
+Determine whether it matches the approved milestone.
+If not, recommend the Git commands to create and switch to the correct milestone branch.
+Wait for confirmation before generating any implementation.
 
 Example:
 
-```bash
 git checkout main
 git pull origin main
 git checkout -b milestone/authentication
-```
 
-Never begin implementation on the `main` branch.
+Never begin implementation on the main branch.
 
 Do not perform Git operations automatically.
 
----
 
-# Standard Workflow
+And I'd also update the **Prompting Guidelines** to match:
 
-Every milestone must follow this lifecycle.
+:::writing{variant="document" id="64720"}
+# Prompting Guidelines
 
-```text
-Git Branch Verification
-        ↓
-Planning
-        ↓
-Architecture Review
-        ↓
-Approval
-        ↓
-Implementation
-        ↓
-Self Review
-        ↓
-Independent Review
-        ↓
-Approval
-        ↓
-Update Session Context
-        ↓
-Recommend Git Commit
-        ↓
-Milestone Complete
-```
+When starting a new AI agent:
 
-Never skip any step.
+1. Read the required documentation.
+2. Analyze the requirements.
+3. Produce the implementation plan.
+4. Perform the Architecture Review.
+5. Wait for approval.
+6. Verify the current Git branch.
+7. If the milestone branch is not checked out, recommend the appropriate Git commands.
+8. Wait for branch confirmation.
+9. Implement only the approved scope.
+10. Perform a self-review.
+11. Wait for approval before continuing.
 
+Never assume the correct Git branch has already been checked out.
 ---
 
 # Step 1 — Planning

@@ -16,6 +16,10 @@ spring:
 oms:
   cors:
     allowed-origins: http://localhost:4200
+  storage:
+    type: local
+    local:
+      base-path: ${OMS_STORAGE_LOCAL_PATH:./target/test-storage}
   security:
     jwt:
       secret: test-secret-key-must-be-at-least-32-characters-long

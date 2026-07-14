@@ -3,8 +3,12 @@ package com.orphanage.oms.exception;
 import com.orphanage.oms.common.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.time.Instant;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,10 +18,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
-import java.time.Instant;
-import java.util.stream.Collectors;
 
 /**
  * Global exception handler returning consistent error responses.
@@ -26,6 +29,9 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private static final String MULTIPART_SIZE_LIMIT_MESSAGE =
+            "Uploaded file must not exceed 10 MB and the total request must not exceed 50 MB.";
 
     /**
      * Handles bean validation errors from request body validation.
@@ -78,6 +84,94 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         return buildResponse(ex.getStatus(), ex.getError(), ex.getMessage(), request.getRequestURI());
+    }
+
+    /**
+     * Maps unique-constraint and other integrity violations to conflict responses.
+     *
+     * @param ex      the integrity violation
+     * @param request the current HTTP request
+     * @return a structured conflict response
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+
+        String detail = integrityDetail(ex).toLowerCase(Locale.ROOT);
+        if (detail.contains("admission_number")
+                || detail.contains("uq_students_admission_number")) {
+            return buildResponse(
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "Admission number is already in use.",
+                    request.getRequestURI());
+        }
+        if (detail.contains("aadhaar_number")
+                || detail.contains("uq_students_aadhaar_number")) {
+            return buildResponse(
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "Aadhaar number is already in use.",
+                    request.getRequestURI());
+        }
+
+        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                "The request conflicts with existing data.",
+                request.getRequestURI());
+    }
+
+    /**
+     * Maps Spring multipart max-upload failures to a size-limit validation error.
+     *
+     * @param ex      the max-upload exception
+     * @param request the current HTTP request
+     * @return a structured bad-request response
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException ex,
+            HttpServletRequest request) {
+
+        log.warn("Multipart size limit exceeded at {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation Error",
+                MULTIPART_SIZE_LIMIT_MESSAGE,
+                request.getRequestURI());
+    }
+
+    /**
+     * Maps other multipart failures (e.g. malformed body) without claiming a size-limit violation.
+     * Size-related nested causes still return the size-limit message.
+     *
+     * @param ex      the multipart exception
+     * @param request the current HTTP request
+     * @return a structured bad-request response
+     */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiErrorResponse> handleMultipartException(
+            MultipartException ex,
+            HttpServletRequest request) {
+
+        if (isSizeLimitCause(ex)) {
+            log.warn("Multipart size limit exceeded at {}: {}", request.getRequestURI(), ex.getMessage());
+            return buildResponse(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    MULTIPART_SIZE_LIMIT_MESSAGE,
+                    request.getRequestURI());
+        }
+
+        log.warn("Invalid multipart request at {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation Error",
+                "Invalid multipart request.",
+                request.getRequestURI());
     }
 
     /**
@@ -162,6 +256,36 @@ public class GlobalExceptionHandler {
 
     private String formatFieldError(FieldError fieldError) {
         return fieldError.getField() + ": " + fieldError.getDefaultMessage();
+    }
+
+    private static String integrityDetail(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        String message = cause.getMessage() != null ? cause.getMessage() : "";
+        String top = ex.getMessage() != null ? ex.getMessage() : "";
+        return top + " " + message;
+    }
+
+    private static boolean isSizeLimitCause(Throwable ex) {
+        Throwable current = ex;
+        while (current != null) {
+            if (current instanceof MaxUploadSizeExceededException) {
+                return true;
+            }
+            String name = current.getClass().getName();
+            if (name.contains("SizeLimitExceededException")
+                    || name.contains("FileSizeLimitExceededException")) {
+                return true;
+            }
+            String message = current.getMessage();
+            if (message != null) {
+                String lower = message.toLowerCase(Locale.ROOT);
+                if (lower.contains("exceeds") && (lower.contains("size") || lower.contains("maximum"))) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(
