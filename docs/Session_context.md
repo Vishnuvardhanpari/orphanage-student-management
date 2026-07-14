@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 6 — Student Profile (completed and closed; merged to `main`)
+Milestone 7 — Student Update (completed and closed; merged to `main` with QA bug fixes BUG-001–007)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 6 — Student Profile (complete)
+Milestone 7 — Student Update
 
 ---
 
@@ -189,33 +189,66 @@ Milestone 6 — Student Profile (complete)
 ### Milestone 6 QA bug fixes (BUG-001–008)
 
 * BUG-001–008 resolved and merged to `main`
-  * [#22](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/22) nested Back button
-  * [#20](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/20) stale list copy
-  * [#21](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/21) Content-Disposition CORS / filename fallback
-  * [#26](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/26) silent photo errors
-  * [#23](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/23) download busy-state UX
-  * [#24](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/24) raw gender enum display
-  * [#27](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/27) missing profile page tests
-  * [#25](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/25) missing `fetchPhoto` service test
+
+---
+
+## Milestone 7 — Student Update (completed and closed; merged to `main`)
+
+### Backend
+
+* `UpdateStudentRequest` (no `admissionNumber`); MapStruct `updateFromDto`
+* Aadhaar uniqueness excluding current student, including soft-deleted rows → `409`
+* `PUT /api/v1/students/{id}` — JSON field update → `StudentDetailResponse`
+* `PUT /api/v1/students/{id}/photo` — replace profile photo → `204`
+* `POST /api/v1/students/{id}/documents` — add supporting docs → `201` list
+* `PUT /api/v1/students/{id}/documents/{documentId}` — replace one document → `200`
+* `DELETE /api/v1/students/{id}/photo` — remove profile photo → `204` (QA BUG-007)
+* `DELETE /api/v1/students/{id}/documents/{documentId}` — logical document delete → `204` (QA BUG-007)
+* Store-new-then-delete-old for photo/document replace; compensation on store failure
+* Admission number immutable; status/exit/soft-delete not editable
+* Unit tests (`StudentServiceTest`) + integration (`StudentUpdateIntegrationTest`)
+
+### Frontend
+
+* Edit route `/students/:id/edit` (registered before `:id`)
+* `StudentFormPage` create | edit mode: prefill, read-only admission number, separate field save vs photo/doc actions
+* Profile page **Edit** CTA
+* `StudentService` update / replacePhoto / addDocuments / replaceDocument
+* Form + service + profile Edit navigation specs
+
+### Docs
+
+* `docs/07_API_Design.md` Milestone 7 contracts (four endpoints)
+
+### Milestone 7 QA bug fixes (BUG-001–007, issues #29–#35)
+
+* BUG-001: `StudentFileUpload` photo preview now syncs with the parent `photo` input (effect clears stale preview after successful replace)
+* BUG-002: Save changes with pending photo/documents opens a confirm dialog ("Save and discard") before discarding un-uploaded files
+* BUG-003: duplicate error toasts removed — the global `errorInterceptor` owns HTTP error toasts; blob endpoints (`fetchPhoto`, `downloadDocument`) opt out via new `SKIP_ERROR_TOAST` `HttpContextToken` and keep their contextual toast
+* BUG-004: replace-document path validates type/size client-side via shared `student-file-validation.ts` helpers (also used by add path)
+* BUG-005: separate `photoUploading` / `docsUploading` signals; button labels no longer cross-trigger; `mediaBusy` is now a computed over all media operations
+* BUG-006: replace row includes a document-type select; selected type is sent on `PUT .../documents/{documentId}`
+* BUG-007: new endpoints `DELETE /students/{id}/photo` (clears path + storage) and `DELETE /students/{id}/documents/{documentId}` (soft delete, storage retained); edit page has Remove photo / Delete document actions with confirm dialogs
+* `ConfirmDialog` moved from `features/user/components` to `shared/components/confirm-dialog` for reuse
+* Integration tests now purge student tables with native SQL (bypasses `@SQLRestriction`) so soft-deleted rows cannot leak between suites
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–5. Student registration / profile specifics:
+Unchanged from Milestone 1–6. Student update specifics:
 
-* Create-only multipart API; profile photo is not stored as a `PHOTOGRAPH` document row
-* Storage provider selected by `oms.storage.type` (profile-driven DI)
-* GCS uses Application Default Credentials + JSON upload API (no full google-cloud-storage SDK)
-* Admission number uniqueness is case-insensitive at DB and application layers; soft-deleted rows remain reserved
-* Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
-* CORS exposes `Content-Disposition` so browsers can read download filenames cross-origin
+* Four write endpoints (fields JSON; photo/docs multipart) rather than one fat multipart PUT
+* Full PUT for editable fields (not PATCH); admission number omitted from update DTO
+* Profile photo remains on `profile_photo_path` only (never a `PHOTOGRAPH` document row)
+* Field save and media uploads are independent so a failed file upload does not roll back text changes
+* Document logical DELETE and photo removal shipped with Milestone 7 QA fixes (BUG-007); document storage objects are retained on soft delete
 
 ---
 
 # Current Objective
 
-Start Milestone 7 — Student Update when ready.
+Begin Milestone 8 — Student Search (list, pagination, filters).
 
 ---
 
@@ -235,14 +268,15 @@ main
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore queries must bypass explicitly (native/`@Query`)
 * Milestone 5 = registration only (completed)
-* Milestone 6 = profile view + document list/download + authenticated `GET /students/{id}/photo`; after registration redirect to `/students/{id}` (completed)
+* Milestone 6 = profile view + document list/download + authenticated `GET /students/{id}/photo` (completed)
+* Milestone 7 = update fields + replace photo + add/replace documents (implemented, pending merge)
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 
 ---
 
 # Pending Milestones
 
-* Milestone 7 — Student Update
+* Milestone 8 — Student Search
 * … (see roadmap)
 
 ---
@@ -257,8 +291,7 @@ None.
 
 # Next Session Goal
 
-1. Begin Milestone 7 — Student Update (planning → architecture review → implementation)
-2. Create / switch to `milestone/student-update` when approved
+1. Begin Milestone 8 — Student Search (list page, server-side pagination/filtering)
 
 ---
 

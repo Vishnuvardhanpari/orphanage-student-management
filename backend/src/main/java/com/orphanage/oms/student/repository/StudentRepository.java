@@ -41,4 +41,22 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
                     """,
             nativeQuery = true)
     long countByAadhaarNumberIncludingDeleted(@Param("aadhaarNumber") String aadhaarNumber);
+
+    /**
+     * Uniqueness check including soft-deleted rows, excluding the current student.
+     */
+    default boolean existsByAadhaarNumberIncludingDeletedExcludingId(
+            String aadhaarNumber, UUID excludeId) {
+        return countByAadhaarNumberIncludingDeletedExcludingId(aadhaarNumber, excludeId) > 0;
+    }
+
+    @Query(
+            value = """
+                    SELECT COUNT(1) FROM students
+                    WHERE aadhaar_number = :aadhaarNumber
+                      AND id <> :excludeId
+                    """,
+            nativeQuery = true)
+    long countByAadhaarNumberIncludingDeletedExcludingId(
+            @Param("aadhaarNumber") String aadhaarNumber, @Param("excludeId") UUID excludeId);
 }

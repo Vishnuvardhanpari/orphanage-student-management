@@ -8,6 +8,7 @@ import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
+import com.orphanage.oms.student.dto.UpdateStudentRequest;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
 import com.orphanage.oms.student.enums.DocumentType;
@@ -17,6 +18,7 @@ import com.orphanage.oms.student.repository.StudentDocumentRepository;
 import com.orphanage.oms.student.repository.StudentRepository;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -31,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Student registration and profile read operations.
+ * Student registration, profile read, and update operations.
  */
 @Service
 public class StudentService {
@@ -242,6 +244,307 @@ public class StudentService {
                 saved.getAdmissionNumber(),
                 actorId);
         return studentMapper.toCreatedResponse(saved);
+    }
+
+    @Transactional
+    public StudentDetailResponse update(UUID id, UpdateStudentRequest request) {
+        Student student = requireStudent(id);
+
+        if (request.dateOfBirth().isAfter(request.admissionDate())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    "Date of birth must be on or before admission date.");
+        }
+
+        String aadhaar = blankToNull(request.aadhaarNumber());
+        if (aadhaar != null
+                && studentRepository.existsByAadhaarNumberIncludingDeletedExcludingId(
+                        aadhaar, id)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "Aadhaar number is already in use.");
+        }
+
+        UUID actorId = currentUserId();
+        studentMapper.updateFromDto(request, student);
+        student.setFirstName(request.firstName().trim());
+        student.setLastName(blankToNull(request.lastName()));
+        student.setAadhaarNumber(aadhaar);
+        student.setPhoneNumber(blankToNull(request.phoneNumber()));
+        student.setBloodGroup(blankToNull(request.bloodGroup()));
+        student.setReligion(blankToNull(request.religion()));
+        student.setNationality(blankToNull(request.nationality()));
+        student.setGuardianName(blankToNull(request.guardianName()));
+        student.setGuardianRelationship(blankToNull(request.guardianRelationship()));
+        student.setGuardianPhone(blankToNull(request.guardianPhone()));
+        student.setGuardianAddress(blankToNull(request.guardianAddress()));
+        student.setSchoolName(blankToNull(request.schoolName()));
+        student.setStandard(blankToNull(request.standard()));
+        student.setMedium(blankToNull(request.medium()));
+        student.setPreviousSchool(blankToNull(request.previousSchool()));
+        student.setMedicalConditions(blankToNull(request.medicalConditions()));
+        student.setAllergies(blankToNull(request.allergies()));
+        student.setDisability(blankToNull(request.disability()));
+        student.setEmergencyNotes(blankToNull(request.emergencyNotes()));
+        student.setUpdatedBy(actorId);
+
+        Student saved = studentRepository.save(student);
+        log.info("Student updated id={} by={}", saved.getId(), actorId);
+        return studentMapper.toDetailResponse(saved);
+    }
+
+    @Transactional
+    public void replacePhoto(UUID id, MultipartFile photo) {
+        if (photo == null || photo.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation Error", "Photo is required.");
+        }
+        fileValidator.validatePhoto(photo);
+
+        Student student = requireStudent(id);
+        UUID actorId = currentUserId();
+        String previousPath = student.getProfilePhotoPath();
+        List<String> storedPaths = new ArrayList<>();
+
+        String extension = fileValidator.extensionOf(photo.getOriginalFilename());
+        String relativePath = "student-documents/" + student.getId() + "/profile-photo." + extension;
+        String contentType =
+                photo.getContentType() != null ? photo.getContentType() : "application/octet-stream";
+
+        try {
+            storeFile(relativePath, contentType, photo, storedPaths);
+            student.setProfilePhotoPath(relativePath);
+            student.setUpdatedBy(actorId);
+            studentRepository.save(student);
+        } catch (RuntimeException ex) {
+            compensateStoredFiles(storedPaths);
+            throw ex;
+        }
+
+        if (previousPath != null
+                && !previousPath.isBlank()
+                && !previousPath.equals(relativePath)) {
+            try {
+                storageService.delete(previousPath);
+            } catch (RuntimeException ex) {
+                log.warn("Failed to delete previous profile photo path={}", previousPath);
+            }
+        }
+
+        log.info("Student photo replaced id={} by={}", id, actorId);
+    }
+
+    @Transactional
+    public List<StudentDocumentResponse> addDocuments(
+            UUID studentId, List<MultipartFile> documents, List<String> documentTypes) {
+        Student student = requireStudent(studentId);
+        List<MultipartFile> docs = documents == null ? List.of() : documents.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+        List<String> types = documentTypes == null ? List.of() : documentTypes;
+
+        if (docs.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    "At least one document is required.");
+        }
+        if (docs.size() != types.size()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    "documents and documentTypes must have the same number of entries.");
+        }
+
+        List<DocumentType> parsedTypes = new ArrayList<>(docs.size());
+        for (int i = 0; i < docs.size(); i++) {
+            fileValidator.validateDocument(docs.get(i));
+            DocumentType type = parseDocumentType(types.get(i));
+            if (type == DocumentType.PHOTOGRAPH) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Validation Error",
+                        "Use the photo endpoint for the student photograph; PHOTOGRAPH is not valid as a supporting document type.");
+            }
+            parsedTypes.add(type);
+        }
+
+        UUID actorId = currentUserId();
+        List<String> storedPaths = new ArrayList<>();
+        List<StudentDocumentResponse> created = new ArrayList<>();
+
+        try {
+            for (int i = 0; i < docs.size(); i++) {
+                MultipartFile document = docs.get(i);
+                DocumentType documentType = parsedTypes.get(i);
+                String extension = fileValidator.extensionOf(document.getOriginalFilename());
+                String storedFileName = documentType.name().toLowerCase(Locale.ROOT)
+                        + "-" + UUID.randomUUID() + "." + extension;
+                String relativePath = "student-documents/" + student.getId() + "/" + storedFileName;
+                String contentType = document.getContentType() != null
+                        ? document.getContentType()
+                        : "application/octet-stream";
+                storeFile(relativePath, contentType, document, storedPaths);
+
+                String originalName = document.getOriginalFilename() != null
+                        ? document.getOriginalFilename()
+                        : storedFileName;
+
+                StudentDocument metadata = StudentDocument.builder()
+                        .student(student)
+                        .documentType(documentType)
+                        .originalFileName(originalName)
+                        .storedFileName(storedFileName)
+                        .storagePath(relativePath)
+                        .contentType(contentType)
+                        .fileSize(document.getSize())
+                        .uploadedBy(actorId)
+                        .deleted(false)
+                        .build();
+                StudentDocument saved = studentDocumentRepository.save(metadata);
+                created.add(studentMapper.toDocumentResponse(saved));
+            }
+
+            student.setUpdatedBy(actorId);
+            studentRepository.save(student);
+        } catch (RuntimeException ex) {
+            compensateStoredFiles(storedPaths);
+            throw ex;
+        }
+
+        log.info(
+                "Student documents uploaded studentId={} count={} by={}",
+                studentId,
+                created.size(),
+                actorId);
+        return created;
+    }
+
+    @Transactional
+    public StudentDocumentResponse replaceDocument(
+            UUID studentId, UUID documentId, MultipartFile document, String documentTypeRaw) {
+        if (document == null || document.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation Error", "Document is required.");
+        }
+        fileValidator.validateDocument(document);
+
+        Student student = requireStudent(studentId);
+        StudentDocument existing = studentDocumentRepository
+                .findByIdAndStudent_Id(documentId, studentId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "Not Found", "Document not found."));
+
+        DocumentType documentType = existing.getDocumentType();
+        if (documentTypeRaw != null && !documentTypeRaw.isBlank()) {
+            documentType = parseDocumentType(documentTypeRaw);
+            if (documentType == DocumentType.PHOTOGRAPH) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Validation Error",
+                        "Use the photo endpoint for the student photograph; PHOTOGRAPH is not valid as a supporting document type.");
+            }
+        }
+
+        UUID actorId = currentUserId();
+        String previousPath = existing.getStoragePath();
+        List<String> storedPaths = new ArrayList<>();
+
+        String extension = fileValidator.extensionOf(document.getOriginalFilename());
+        String storedFileName = documentType.name().toLowerCase(Locale.ROOT)
+                + "-" + UUID.randomUUID() + "." + extension;
+        String relativePath = "student-documents/" + student.getId() + "/" + storedFileName;
+        String contentType = document.getContentType() != null
+                ? document.getContentType()
+                : "application/octet-stream";
+
+        try {
+            storeFile(relativePath, contentType, document, storedPaths);
+
+            existing.setDocumentType(documentType);
+            existing.setOriginalFileName(
+                    document.getOriginalFilename() != null
+                            ? document.getOriginalFilename()
+                            : storedFileName);
+            existing.setStoredFileName(storedFileName);
+            existing.setStoragePath(relativePath);
+            existing.setContentType(contentType);
+            existing.setFileSize(document.getSize());
+            existing.setUploadedBy(actorId);
+            existing.setUploadedDate(Instant.now());
+
+            student.setUpdatedBy(actorId);
+            studentRepository.save(student);
+            StudentDocument saved = studentDocumentRepository.save(existing);
+
+            if (previousPath != null
+                    && !previousPath.isBlank()
+                    && !previousPath.equals(relativePath)) {
+                try {
+                    storageService.delete(previousPath);
+                } catch (RuntimeException ex) {
+                    log.warn("Failed to delete previous document path={}", previousPath);
+                }
+            }
+
+            log.info(
+                    "Student document replaced studentId={} documentId={} by={}",
+                    studentId,
+                    documentId,
+                    actorId);
+            return studentMapper.toDocumentResponse(saved);
+        } catch (RuntimeException ex) {
+            compensateStoredFiles(storedPaths);
+            throw ex;
+        }
+    }
+
+    @Transactional
+    public void deletePhoto(UUID id) {
+        Student student = requireStudent(id);
+        String photoPath = student.getProfilePhotoPath();
+        if (photoPath == null || photoPath.isBlank()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Profile photo not found.");
+        }
+
+        UUID actorId = currentUserId();
+        student.setProfilePhotoPath(null);
+        student.setUpdatedBy(actorId);
+        studentRepository.save(student);
+
+        try {
+            storageService.delete(photoPath);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to delete profile photo storage object path={}", photoPath);
+        }
+
+        log.info("Student photo deleted id={} by={}", id, actorId);
+    }
+
+    @Transactional
+    public void deleteDocument(UUID studentId, UUID documentId) {
+        Student student = requireStudent(studentId);
+        StudentDocument document = studentDocumentRepository
+                .findByIdAndStudent_Id(documentId, studentId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "Not Found", "Document not found."));
+
+        UUID actorId = currentUserId();
+        // Logical removal only: the storage object is retained for historical recovery.
+        document.setDeleted(true);
+        document.setDeletedDate(Instant.now());
+        studentDocumentRepository.save(document);
+
+        student.setUpdatedBy(actorId);
+        studentRepository.save(student);
+
+        log.info(
+                "Student document deleted studentId={} documentId={} by={}",
+                studentId,
+                documentId,
+                actorId);
     }
 
     private void storeFile(

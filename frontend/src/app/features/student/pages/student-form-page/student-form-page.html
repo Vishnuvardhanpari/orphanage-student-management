@@ -1,206 +1,304 @@
 <section class="student-form">
-  <app-page-header
-    title="Register student"
-    subtitle="Capture admission details, optional photo, and supporting documents."
-  >
+  <app-page-header [title]="pageTitle()" [subtitle]="pageSubtitle()">
     <app-button variant="secondary" type="button" (pressed)="cancel()">Cancel</app-button>
   </app-page-header>
 
-  <form class="student-form__layout" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <section class="student-form__section">
-      <h2>Personal information</h2>
-      <div class="student-form__grid">
-        <label class="student-form__field">
-          <span>Admission number *</span>
-          <input class="student-form__input" type="text" formControlName="admissionNumber" />
-          @if (form.controls.admissionNumber.touched && form.controls.admissionNumber.invalid) {
-            <span class="student-form__error">Admission number is required.</span>
-          }
-        </label>
-        <label class="student-form__field">
-          <span>First name *</span>
-          <input class="student-form__input" type="text" formControlName="firstName" />
-          @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
-            <span class="student-form__error">First name is required.</span>
-          }
-        </label>
-        <label class="student-form__field">
-          <span>Last name</span>
-          <input class="student-form__input" type="text" formControlName="lastName" />
-        </label>
-        <label class="student-form__field">
-          <span>Gender *</span>
-          <select class="student-form__input" formControlName="gender">
-            <option [value]="genders.Male">Male</option>
-            <option [value]="genders.Female">Female</option>
-            <option [value]="genders.Other">Other</option>
-          </select>
-        </label>
-        <label class="student-form__field">
-          <span>Date of birth *</span>
-          <input
-            class="student-form__input"
-            type="date"
-            formControlName="dateOfBirth"
-            [attr.max]="todayMax"
-          />
-          @if (dateOfBirthError(); as dobError) {
-            <span class="student-form__error">{{ dobError }}</span>
-          }
-        </label>
-        <label class="student-form__field">
-          <span>Blood group</span>
-          <input class="student-form__input" type="text" formControlName="bloodGroup" />
-        </label>
-        <label class="student-form__field">
-          <span>Religion</span>
-          <input class="student-form__input" type="text" formControlName="religion" />
-        </label>
-        <label class="student-form__field">
-          <span>Nationality</span>
-          <input class="student-form__input" type="text" formControlName="nationality" />
-        </label>
-        <label class="student-form__field">
-          <span>Aadhaar number</span>
-          <input class="student-form__input" type="text" formControlName="aadhaarNumber" inputmode="numeric" />
-          @if (form.controls.aadhaarNumber.touched && form.controls.aadhaarNumber.invalid) {
-            <span class="student-form__error">Aadhaar must be 12 digits when provided.</span>
-          }
-        </label>
-        <label class="student-form__field">
-          <span>Phone number</span>
-          <input class="student-form__input" type="tel" formControlName="phoneNumber" />
-        </label>
-      </div>
-    </section>
+  @if (loading()) {
+    <p class="student-form__loading">Loading…</p>
+  } @else {
+    <form class="student-form__layout" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <section class="student-form__section">
+        <h2>Personal information</h2>
+        <div class="student-form__grid">
+          <label class="student-form__field">
+            <span>Admission number *</span>
+            <input class="student-form__input" type="text" formControlName="admissionNumber" />
+            @if (mode() === 'edit') {
+              <span class="student-form__hint">Admission number cannot be changed after registration.</span>
+            }
+            @if (form.controls.admissionNumber.touched && form.controls.admissionNumber.invalid) {
+              <span class="student-form__error">Admission number is required.</span>
+            }
+          </label>
+          <label class="student-form__field">
+            <span>First name *</span>
+            <input class="student-form__input" type="text" formControlName="firstName" />
+            @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
+              <span class="student-form__error">First name is required.</span>
+            }
+          </label>
+          <label class="student-form__field">
+            <span>Last name</span>
+            <input class="student-form__input" type="text" formControlName="lastName" />
+          </label>
+          <label class="student-form__field">
+            <span>Gender *</span>
+            <select class="student-form__input" formControlName="gender">
+              <option [value]="genders.Male">Male</option>
+              <option [value]="genders.Female">Female</option>
+              <option [value]="genders.Other">Other</option>
+            </select>
+          </label>
+          <label class="student-form__field">
+            <span>Date of birth *</span>
+            <input
+              class="student-form__input"
+              type="date"
+              formControlName="dateOfBirth"
+              [attr.max]="todayMax"
+            />
+            @if (dateOfBirthError(); as dobError) {
+              <span class="student-form__error">{{ dobError }}</span>
+            }
+          </label>
+          <label class="student-form__field">
+            <span>Blood group</span>
+            <input class="student-form__input" type="text" formControlName="bloodGroup" />
+          </label>
+          <label class="student-form__field">
+            <span>Religion</span>
+            <input class="student-form__input" type="text" formControlName="religion" />
+          </label>
+          <label class="student-form__field">
+            <span>Nationality</span>
+            <input class="student-form__input" type="text" formControlName="nationality" />
+          </label>
+          <label class="student-form__field">
+            <span>Aadhaar number</span>
+            <input class="student-form__input" type="text" formControlName="aadhaarNumber" inputmode="numeric" />
+            @if (form.controls.aadhaarNumber.touched && form.controls.aadhaarNumber.invalid) {
+              <span class="student-form__error">Aadhaar must be 12 digits when provided.</span>
+            }
+          </label>
+          <label class="student-form__field">
+            <span>Phone number</span>
+            <input class="student-form__input" type="tel" formControlName="phoneNumber" />
+          </label>
+        </div>
+      </section>
 
-    <section class="student-form__section">
-      <h2>Guardian information</h2>
-      <div class="student-form__grid">
-        <label class="student-form__field">
-          <span>Guardian name</span>
-          <input class="student-form__input" type="text" formControlName="guardianName" />
-        </label>
-        <label class="student-form__field">
-          <span>Relationship</span>
-          <input class="student-form__input" type="text" formControlName="guardianRelationship" />
-        </label>
-        <label class="student-form__field">
-          <span>Guardian phone</span>
-          <input class="student-form__input" type="tel" formControlName="guardianPhone" />
-        </label>
-        <label class="student-form__field student-form__field--full">
-          <span>Address</span>
-          <textarea class="student-form__input" rows="3" formControlName="guardianAddress"></textarea>
-        </label>
-      </div>
-    </section>
+      <section class="student-form__section">
+        <h2>Guardian information</h2>
+        <div class="student-form__grid">
+          <label class="student-form__field">
+            <span>Guardian name</span>
+            <input class="student-form__input" type="text" formControlName="guardianName" />
+          </label>
+          <label class="student-form__field">
+            <span>Relationship</span>
+            <input class="student-form__input" type="text" formControlName="guardianRelationship" />
+          </label>
+          <label class="student-form__field">
+            <span>Guardian phone</span>
+            <input class="student-form__input" type="tel" formControlName="guardianPhone" />
+          </label>
+          <label class="student-form__field student-form__field--full">
+            <span>Address</span>
+            <textarea class="student-form__input" rows="3" formControlName="guardianAddress"></textarea>
+          </label>
+        </div>
+      </section>
 
-    <section class="student-form__section">
-      <h2>Education</h2>
-      <div class="student-form__grid">
-        <label class="student-form__field">
-          <span>School name</span>
-          <input class="student-form__input" type="text" formControlName="schoolName" />
-        </label>
-        <label class="student-form__field">
-          <span>Standard</span>
-          <input class="student-form__input" type="text" formControlName="standard" />
-        </label>
-        <label class="student-form__field">
-          <span>Medium</span>
-          <input class="student-form__input" type="text" formControlName="medium" />
-        </label>
-        <label class="student-form__field">
-          <span>Previous school</span>
-          <input class="student-form__input" type="text" formControlName="previousSchool" />
-        </label>
-      </div>
-    </section>
+      <section class="student-form__section">
+        <h2>Education</h2>
+        <div class="student-form__grid">
+          <label class="student-form__field">
+            <span>School name</span>
+            <input class="student-form__input" type="text" formControlName="schoolName" />
+          </label>
+          <label class="student-form__field">
+            <span>Standard</span>
+            <input class="student-form__input" type="text" formControlName="standard" />
+          </label>
+          <label class="student-form__field">
+            <span>Medium</span>
+            <input class="student-form__input" type="text" formControlName="medium" />
+          </label>
+          <label class="student-form__field">
+            <span>Previous school</span>
+            <input class="student-form__input" type="text" formControlName="previousSchool" />
+          </label>
+        </div>
+      </section>
 
-    <section class="student-form__section">
-      <h2>Medical</h2>
-      <div class="student-form__grid">
-        <label class="student-form__field student-form__field--full">
-          <span>Medical conditions</span>
-          <textarea class="student-form__input" rows="2" formControlName="medicalConditions"></textarea>
-        </label>
-        <label class="student-form__field student-form__field--full">
-          <span>Allergies</span>
-          <textarea class="student-form__input" rows="2" formControlName="allergies"></textarea>
-        </label>
-        <label class="student-form__field student-form__field--full">
-          <span>Disability</span>
-          <textarea class="student-form__input" rows="2" formControlName="disability"></textarea>
-        </label>
-        <label class="student-form__field student-form__field--full">
-          <span>Emergency notes</span>
-          <textarea class="student-form__input" rows="2" formControlName="emergencyNotes"></textarea>
-        </label>
-      </div>
-    </section>
+      <section class="student-form__section">
+        <h2>Medical</h2>
+        <div class="student-form__grid">
+          <label class="student-form__field student-form__field--full">
+            <span>Medical conditions</span>
+            <textarea class="student-form__input" rows="2" formControlName="medicalConditions"></textarea>
+          </label>
+          <label class="student-form__field student-form__field--full">
+            <span>Allergies</span>
+            <textarea class="student-form__input" rows="2" formControlName="allergies"></textarea>
+          </label>
+          <label class="student-form__field student-form__field--full">
+            <span>Disability</span>
+            <textarea class="student-form__input" rows="2" formControlName="disability"></textarea>
+          </label>
+          <label class="student-form__field student-form__field--full">
+            <span>Emergency notes</span>
+            <textarea class="student-form__input" rows="2" formControlName="emergencyNotes"></textarea>
+          </label>
+        </div>
+      </section>
 
-    <section class="student-form__section">
-      <h2>Admission</h2>
-      <div class="student-form__grid">
-        <label class="student-form__field">
-          <span>Admission date *</span>
-          <input
-            class="student-form__input"
-            type="date"
-            formControlName="admissionDate"
-            [attr.max]="todayMax"
-          />
-          @if (admissionDateError(); as admError) {
-            <span class="student-form__error">{{ admError }}</span>
-          }
-        </label>
-      </div>
-    </section>
+      <section class="student-form__section">
+        <h2>Admission</h2>
+        <div class="student-form__grid">
+          <label class="student-form__field">
+            <span>Admission date *</span>
+            <input
+              class="student-form__input"
+              type="date"
+              formControlName="admissionDate"
+              [attr.max]="todayMax"
+            />
+            @if (admissionDateError(); as admError) {
+              <span class="student-form__error">{{ admError }}</span>
+            }
+          </label>
+        </div>
+      </section>
 
-    <section class="student-form__section">
-      <h2>Files</h2>
-      <app-student-file-upload
-        [photo]="photo()"
-        [documents]="documents()"
-        (photoChange)="onPhotoChange($event)"
-        (documentsChange)="onDocumentsChange($event)"
-        (validationError)="onUploadValidationError($event)"
-      />
-      @if (submitting() && hasFilesAttached()) {
-        <div
-          class="student-form__upload-progress"
-          role="progressbar"
-          [attr.aria-valuenow]="uploadProgress() ?? undefined"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-label="File upload progress"
-        >
-          <div class="student-form__upload-progress-track">
-            @if (uploadProgress() !== null) {
-              <div
-                class="student-form__upload-progress-bar"
-                [style.width.%]="uploadProgress()"
-              ></div>
+      <section class="student-form__section">
+        <h2>Files</h2>
+
+        @if (mode() === 'edit') {
+          <div class="student-form__existing-photo">
+            <p class="student-form__existing-label">Current photograph</p>
+            @if (existingPhotoUrl(); as url) {
+              <img class="student-form__existing-photo-img" [src]="url" alt="Current student photograph" />
+              <app-button
+                type="button"
+                variant="danger"
+                size="sm"
+                [disabled]="mediaBusy()"
+                (pressed)="removeExistingPhoto()"
+              >
+                {{ deletingPhoto() ? 'Removing…' : 'Remove photo' }}
+              </app-button>
             } @else {
-              <div class="student-form__upload-progress-bar student-form__upload-progress-bar--indeterminate"></div>
+              <p class="student-form__hint">No photograph on file.</p>
             }
           </div>
-          <span class="student-form__upload-progress-label">
-            @if (uploadProgress() !== null) {
-              Uploading… {{ uploadProgress() }}%
-            } @else {
-              Uploading files…
-            }
-          </span>
-        </div>
-      }
-    </section>
 
-    <div class="student-form__actions">
-      <app-button type="submit" variant="primary" [disabled]="submitting()">
-        {{ submitting() ? 'Saving…' : 'Register student' }}
-      </app-button>
-    </div>
-  </form>
+          @if (existingDocuments().length > 0) {
+            <div class="student-form__existing-docs" aria-label="Existing documents">
+              <p class="student-form__existing-label">Existing documents</p>
+              @for (doc of existingDocuments(); track doc.id) {
+                <div class="student-form__existing-doc-row">
+                  <div>
+                    <strong>{{ documentTypeLabel(doc.documentType) }}</strong>
+                    <span>{{ doc.originalFileName }}</span>
+                  </div>
+                  <div class="student-form__existing-doc-actions">
+                    <label class="student-form__replace-type">
+                      <span class="sr-only">Document type when replacing {{ doc.originalFileName }}</span>
+                      <select
+                        class="student-form__input"
+                        [disabled]="mediaBusy()"
+                        (change)="onReplacementTypeChange(doc, $event)"
+                      >
+                        @for (type of supportingDocumentTypes; track type) {
+                          <option [value]="type" [selected]="replacementTypeFor(doc) === type">
+                            {{ documentTypeLabel(type) }}
+                          </option>
+                        }
+                      </select>
+                    </label>
+                    <label class="student-form__replace-label">
+                      <span class="sr-only">Replace {{ doc.originalFileName }}</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                        [disabled]="mediaBusy()"
+                        (change)="onReplaceDocumentSelected(doc, $event)"
+                      />
+                      <span class="student-form__replace-btn">
+                        {{ replacingDocumentId() === doc.id ? 'Replacing…' : 'Replace' }}
+                      </span>
+                    </label>
+                    <app-button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      [disabled]="mediaBusy()"
+                      (pressed)="deleteExistingDocument(doc)"
+                    >
+                      {{ deletingDocumentId() === doc.id ? 'Deleting…' : 'Delete' }}
+                    </app-button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+
+        <app-student-file-upload
+          [photo]="photo()"
+          [documents]="documents()"
+          (photoChange)="onPhotoChange($event)"
+          (documentsChange)="onDocumentsChange($event)"
+          (validationError)="onUploadValidationError($event)"
+        />
+
+        @if (mode() === 'edit') {
+          <div class="student-form__media-actions">
+            <app-button
+              type="button"
+              variant="secondary"
+              [disabled]="mediaBusy() || !photo()"
+              (pressed)="replacePhoto()"
+            >
+              {{ photoUploading() ? 'Uploading photo…' : 'Replace photo' }}
+            </app-button>
+            <app-button
+              type="button"
+              variant="secondary"
+              [disabled]="mediaBusy() || documents().length === 0"
+              (pressed)="uploadAdditionalDocuments()"
+            >
+              {{ docsUploading() ? 'Uploading…' : 'Upload new documents' }}
+            </app-button>
+          </div>
+        }
+
+        @if (mode() === 'create' && submitting() && hasFilesAttached()) {
+          <div
+            class="student-form__upload-progress"
+            role="progressbar"
+            [attr.aria-valuenow]="uploadProgress() ?? undefined"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label="File upload progress"
+          >
+            <div class="student-form__upload-progress-track">
+              @if (uploadProgress() !== null) {
+                <div
+                  class="student-form__upload-progress-bar"
+                  [style.width.%]="uploadProgress()"
+                ></div>
+              } @else {
+                <div class="student-form__upload-progress-bar student-form__upload-progress-bar--indeterminate"></div>
+              }
+            </div>
+            <span class="student-form__upload-progress-label">
+              @if (uploadProgress() !== null) {
+                Uploading… {{ uploadProgress() }}%
+              } @else {
+                Uploading files…
+              }
+            </span>
+          </div>
+        }
+      </section>
+
+      <div class="student-form__actions">
+        <app-button type="submit" variant="primary" [disabled]="submitting() || mediaBusy()">
+          {{ submitLabel() }}
+        </app-button>
+      </div>
+    </form>
+  }
 </section>

@@ -66,8 +66,9 @@ class StudentRegistrationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        studentDocumentRepository.deleteAll();
-        studentRepository.deleteAll();
+        // Native deletes bypass @SQLRestriction so soft-deleted rows are purged too.
+        jdbcTemplate.update("DELETE FROM student_documents");
+        jdbcTemplate.update("DELETE FROM students");
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
 

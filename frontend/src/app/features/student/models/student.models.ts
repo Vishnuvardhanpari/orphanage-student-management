@@ -57,6 +57,9 @@ export interface CreateStudentRequest {
   admissionDate: string;
 }
 
+/** Editable fields for PUT /students/{id} (admission number is immutable). */
+export type UpdateStudentRequest = Omit<CreateStudentRequest, 'admissionNumber'>;
+
 export interface StudentCreatedResponse {
   id: string;
   admissionNumber: string;

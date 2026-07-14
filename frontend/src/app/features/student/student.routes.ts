@@ -15,6 +15,11 @@ export const STUDENT_ROUTES: Routes = [
     title: 'Register student',
   },
   {
+    path: ':id/edit',
+    component: StudentFormPage,
+    title: 'Edit student',
+  },
+  {
     path: ':id',
     component: StudentProfilePage,
     title: 'Student profile',

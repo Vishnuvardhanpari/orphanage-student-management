@@ -1,6 +1,9 @@
 <section class="student-profile">
   <app-page-header title="Student profile" subtitle="Complete student record and documents.">
     <app-button variant="secondary" type="button" (pressed)="goBack()">Back to list</app-button>
+    @if (student(); as s) {
+      <app-button variant="primary" type="button" (pressed)="editStudent()">Edit</app-button>
+    }
   </app-page-header>
 
   @if (loading()) {

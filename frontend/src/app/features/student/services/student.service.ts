@@ -1,14 +1,22 @@
-import { HttpClient, HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpEvent,
+  HttpEventType,
+  HttpResponse,
+} from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, filter, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { API_PATHS } from '../../../core/constants/api-paths';
+import { SKIP_ERROR_TOAST } from '../../../core/interceptors/error.interceptor';
 import {
   CreateStudentRequest,
   DocumentType,
   StudentCreatedResponse,
   StudentDetail,
   StudentDocumentMeta,
+  UpdateStudentRequest,
 } from '../models/student.models';
 
 export interface StudentCreateProgress {
@@ -24,7 +32,7 @@ export interface StudentFileDownload {
 }
 
 /**
- * Student registration and profile API client.
+ * Student registration, profile, and update API client.
  */
 @Injectable({ providedIn: 'root' })
 export class StudentService {
@@ -86,6 +94,56 @@ export class StudentService {
       );
   }
 
+  update(id: string, data: UpdateStudentRequest): Observable<StudentDetail> {
+    return this.http.put<StudentDetail>(`${this.baseUrl}/${id}`, data);
+  }
+
+  replacePhoto(id: string, photo: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('photo', photo, photo.name);
+    return this.http.put<void>(`${this.baseUrl}/${id}/photo`, formData);
+  }
+
+  addDocuments(
+    studentId: string,
+    documents: { file: File; documentType: DocumentType }[],
+  ): Observable<StudentDocumentMeta[]> {
+    const formData = new FormData();
+    for (const doc of documents) {
+      formData.append('documents', doc.file, doc.file.name);
+      formData.append('documentTypes', doc.documentType);
+    }
+    return this.http.post<StudentDocumentMeta[]>(
+      `${this.baseUrl}/${studentId}/documents`,
+      formData,
+    );
+  }
+
+  replaceDocument(
+    studentId: string,
+    documentId: string,
+    document: File,
+    documentType?: DocumentType,
+  ): Observable<StudentDocumentMeta> {
+    const formData = new FormData();
+    formData.append('document', document, document.name);
+    if (documentType) {
+      formData.append('documentType', documentType);
+    }
+    return this.http.put<StudentDocumentMeta>(
+      `${this.baseUrl}/${studentId}/documents/${documentId}`,
+      formData,
+    );
+  }
+
+  deletePhoto(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}/photo`);
+  }
+
+  deleteDocument(studentId: string, documentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${studentId}/documents/${documentId}`);
+  }
+
   getById(id: string): Observable<StudentDetail> {
     return this.http.get<StudentDetail>(`${this.baseUrl}/${id}`);
   }
@@ -97,6 +155,9 @@ export class StudentService {
   fetchPhoto(studentId: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/${studentId}/photo`, {
       responseType: 'blob',
+      // Blob error bodies cannot be resolved to a message by the global
+      // interceptor; callers show their own contextual toast instead.
+      context: new HttpContext().set(SKIP_ERROR_TOAST, true),
     });
   }
 
@@ -105,6 +166,7 @@ export class StudentService {
       .get(`${this.baseUrl}/${studentId}/documents/${documentId}/download`, {
         observe: 'response',
         responseType: 'blob',
+        context: new HttpContext().set(SKIP_ERROR_TOAST, true),
       })
       .pipe(
         map((response: HttpResponse<Blob>) => ({

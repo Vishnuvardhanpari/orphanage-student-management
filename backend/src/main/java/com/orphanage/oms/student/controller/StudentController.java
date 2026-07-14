@@ -5,6 +5,7 @@ import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
+import com.orphanage.oms.student.dto.UpdateStudentRequest;
 import com.orphanage.oms.student.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -20,9 +21,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -31,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Student registration and profile endpoints.
+ * Student registration, profile, and update endpoints.
  */
 @RestController
 @RequestMapping("/api/v1/students")
@@ -63,10 +67,61 @@ public class StudentController {
         return studentService.getById(id);
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Update student personal, guardian, education, and medical fields")
+    public StudentDetailResponse update(
+            @PathVariable UUID id, @Valid @RequestBody UpdateStudentRequest request) {
+        return studentService.update(id, request);
+    }
+
+    @PutMapping(value = "/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Replace the student profile photo")
+    public void replacePhoto(
+            @PathVariable UUID id, @RequestPart("photo") MultipartFile photo) {
+        studentService.replacePhoto(id, photo);
+    }
+
     @GetMapping("/{id}/documents")
     @Operation(summary = "List active supporting documents for a student")
     public List<StudentDocumentResponse> listDocuments(@PathVariable UUID id) {
         return studentService.listDocuments(id);
+    }
+
+    @PostMapping(value = "/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Upload additional supporting documents")
+    public List<StudentDocumentResponse> addDocuments(
+            @PathVariable UUID id,
+            @RequestPart("documents") List<MultipartFile> documents,
+            @RequestParam("documentTypes") List<String> documentTypes) {
+        return studentService.addDocuments(id, documents, documentTypes);
+    }
+
+    @PutMapping(
+            value = "/{id}/documents/{documentId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Replace an existing supporting document")
+    public StudentDocumentResponse replaceDocument(
+            @PathVariable UUID id,
+            @PathVariable UUID documentId,
+            @RequestPart("document") MultipartFile document,
+            @RequestParam(value = "documentType", required = false) String documentType) {
+        return studentService.replaceDocument(id, documentId, document, documentType);
+    }
+
+    @DeleteMapping("/{id}/photo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Remove the student profile photo")
+    public void deletePhoto(@PathVariable UUID id) {
+        studentService.deletePhoto(id);
+    }
+
+    @DeleteMapping("/{id}/documents/{documentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Logically remove a supporting document")
+    public void deleteDocument(@PathVariable UUID id, @PathVariable UUID documentId) {
+        studentService.deleteDocument(id, documentId);
     }
 
     @GetMapping("/{id}/documents/{documentId}/download")

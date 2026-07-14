@@ -176,6 +176,16 @@ describe('StudentProfilePage', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith(APP_PATHS.students);
   });
 
+  it('navigates to edit page', async () => {
+    await setup();
+
+    page.editStudent();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith(
+      `${APP_PATHS.students}/${studentId}/edit`,
+    );
+  });
+
   it('notifies when profile photo fetch fails', async () => {
     await setup({
       student: { ...studentDetail, hasProfilePhoto: true },
