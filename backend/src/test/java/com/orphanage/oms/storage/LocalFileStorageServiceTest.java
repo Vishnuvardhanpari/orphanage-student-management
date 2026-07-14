@@ -56,4 +56,26 @@ class LocalFileStorageServiceTest {
                         content.length))
                 .isInstanceOf(ApiException.class);
     }
+
+    @Test
+    void loadReturnsStoredContent() throws Exception {
+        byte[] content = "photo-bytes".getBytes(StandardCharsets.UTF_8);
+        String path = storageService.store(
+                "student-documents/abc/profile-photo.jpg",
+                "image/jpeg",
+                new ByteArrayInputStream(content),
+                content.length);
+
+        try (var stream = storageService.load(path)) {
+            assertThat(stream.readAllBytes()).isEqualTo(content);
+        }
+    }
+
+    @Test
+    void loadMissingFileThrowsNotFound() {
+        assertThatThrownBy(() -> storageService.load("student-documents/missing/file.jpg"))
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).getStatus()).isEqualTo(
+                        org.springframework.http.HttpStatus.NOT_FOUND));
+    }
 }

@@ -1,0 +1,207 @@
+<section class="student-profile">
+  <app-page-header title="Student profile" subtitle="Complete student record and documents.">
+    <app-button variant="secondary" type="button" (pressed)="goBack()">Back to list</app-button>
+  </app-page-header>
+
+  @if (loading()) {
+    <p class="student-profile__loading">Loading…</p>
+  } @else if (student(); as s) {
+    <div class="student-profile__hero">
+      <div class="student-profile__photo" aria-label="Student photograph">
+        @if (photoUrl(); as url) {
+          <img [src]="url" [alt]="'Photograph of ' + s.firstName" />
+        } @else {
+          <div class="student-profile__photo-placeholder">
+            <span>{{ s.firstName.charAt(0) }}</span>
+            <p>{{ photoUnavailable() ? 'Photo unavailable' : 'No photo uploaded' }}</p>
+          </div>
+        }
+      </div>
+      <div class="student-profile__summary">
+        <h2>{{ s.firstName }}{{ s.lastName ? ' ' + s.lastName : '' }}</h2>
+        <p>{{ s.admissionNumber }}</p>
+        <span
+          class="student-profile__badge"
+          [class.student-profile__badge--ok]="s.status === 'ACTIVE'"
+          [class.student-profile__badge--off]="s.status !== 'ACTIVE'"
+        >
+          {{ statusLabel(s.status) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Personal</h3>
+      <dl class="student-profile__grid">
+        <div>
+          <dt>Gender</dt>
+          <dd>{{ genderLabel(s.gender) }}</dd>
+        </div>
+        <div>
+          <dt>Date of birth</dt>
+          <dd>{{ s.dateOfBirth | date: 'mediumDate' }}</dd>
+        </div>
+        <div>
+          <dt>Blood group</dt>
+          <dd>{{ display(s.bloodGroup) }}</dd>
+        </div>
+        <div>
+          <dt>Religion</dt>
+          <dd>{{ display(s.religion) }}</dd>
+        </div>
+        <div>
+          <dt>Nationality</dt>
+          <dd>{{ display(s.nationality) }}</dd>
+        </div>
+        <div>
+          <dt>Aadhaar</dt>
+          <dd>{{ display(s.aadhaarNumber) }}</dd>
+        </div>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ display(s.phoneNumber) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Guardian</h3>
+      <dl class="student-profile__grid">
+        <div>
+          <dt>Name</dt>
+          <dd>{{ display(s.guardianName) }}</dd>
+        </div>
+        <div>
+          <dt>Relationship</dt>
+          <dd>{{ display(s.guardianRelationship) }}</dd>
+        </div>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ display(s.guardianPhone) }}</dd>
+        </div>
+        <div class="student-profile__span-2">
+          <dt>Address</dt>
+          <dd>{{ display(s.guardianAddress) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Education</h3>
+      <dl class="student-profile__grid">
+        <div>
+          <dt>School</dt>
+          <dd>{{ display(s.schoolName) }}</dd>
+        </div>
+        <div>
+          <dt>Standard</dt>
+          <dd>{{ display(s.standard) }}</dd>
+        </div>
+        <div>
+          <dt>Medium</dt>
+          <dd>{{ display(s.medium) }}</dd>
+        </div>
+        <div>
+          <dt>Previous school</dt>
+          <dd>{{ display(s.previousSchool) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Medical</h3>
+      <dl class="student-profile__grid">
+        <div class="student-profile__span-2">
+          <dt>Conditions</dt>
+          <dd>{{ display(s.medicalConditions) }}</dd>
+        </div>
+        <div>
+          <dt>Allergies</dt>
+          <dd>{{ display(s.allergies) }}</dd>
+        </div>
+        <div>
+          <dt>Disability</dt>
+          <dd>{{ display(s.disability) }}</dd>
+        </div>
+        <div class="student-profile__span-2">
+          <dt>Emergency notes</dt>
+          <dd>{{ display(s.emergencyNotes) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Admission</h3>
+      <dl class="student-profile__grid">
+        <div>
+          <dt>Admission date</dt>
+          <dd>{{ s.admissionDate | date: 'mediumDate' }}</dd>
+        </div>
+        <div>
+          <dt>Exit date</dt>
+          <dd>{{ s.exitDate ? (s.exitDate | date: 'mediumDate') : '—' }}</dd>
+        </div>
+        <div class="student-profile__span-2">
+          <dt>Exit reason</dt>
+          <dd>{{ display(s.exitReason) }}</dd>
+        </div>
+        <div class="student-profile__span-2">
+          <dt>Exit remarks</dt>
+          <dd>{{ display(s.exitRemarks) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Audit</h3>
+      <dl class="student-profile__grid">
+        <div>
+          <dt>Created</dt>
+          <dd>{{ s.createdDate | date: 'medium' }}</dd>
+        </div>
+        <div>
+          <dt>Updated</dt>
+          <dd>{{ s.updatedDate | date: 'medium' }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-profile__section">
+      <h3>Documents</h3>
+      @if (documents().length === 0) {
+        <app-empty-state
+          title="No documents"
+          description="Supporting documents uploaded for this student will appear here."
+        />
+      } @else {
+        <div class="student-profile__docs" role="table" aria-label="Uploaded documents">
+          <div class="student-profile__docs-head" role="row">
+            <span role="columnheader">Type</span>
+            <span role="columnheader">File</span>
+            <span role="columnheader">Size</span>
+            <span role="columnheader">Uploaded</span>
+            <span role="columnheader">Actions</span>
+          </div>
+          @for (doc of documents(); track doc.id) {
+            <div class="student-profile__docs-row" role="row">
+              <span role="cell">{{ documentTypeLabel(doc.documentType) }}</span>
+              <span role="cell">{{ doc.originalFileName }}</span>
+              <span role="cell">{{ doc.fileSize / 1024 | number: '1.0-1' }} KB</span>
+              <span role="cell">{{ doc.uploadedDate | date: 'medium' }}</span>
+              <span role="cell">
+                <app-button
+                  variant="secondary"
+                  size="sm"
+                  [disabled]="!!downloadingId()"
+                  (pressed)="download(doc)"
+                >
+                  Download
+                </app-button>
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</section>

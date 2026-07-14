@@ -124,7 +124,7 @@ Public auth endpoints (no JWT required): `/auth/login`, `/auth/google`, `/auth/r
 
 Base path: `/api/v1/students`
 
-Authorization: JWT required. `ADMIN` or `STAFF` may register students.
+Authorization: JWT required. `ADMIN` or `STAFF` may register students, view profiles, list documents, and download files.
 
 ## Register student (Milestone 5)
 
@@ -167,6 +167,73 @@ Not accepted: `status` (always `ACTIVE`), exit fields, soft-delete fields
 
 ---
 
+## Get student profile (Milestone 6)
+
+`GET /students/{id}`
+
+### Response `200 OK`
+
+`StudentDetailResponse` — personal, guardian, education, medical, admission/exit, `status`, `hasProfilePhoto`, `createdDate`, `updatedDate`.
+
+Does **not** return storage paths (`profilePhotoPath`).
+
+Soft-deleted or unknown students → `404`.
+
+### Errors
+
+* `401` — unauthenticated
+* `403` — authenticated but not ADMIN/STAFF
+* `404` — student not found
+
+---
+
+## Stream profile photo (Milestone 6)
+
+`GET /students/{id}/photo`
+
+Returns the stored image bytes with `Content-Disposition: inline` and an appropriate `Content-Type` (`image/jpeg` / `image/png`).
+
+### Errors
+
+* `401` / `403` — as above
+* `404` — student not found, no photo, or missing storage object
+
+---
+
+## List student documents (Milestone 6)
+
+`GET /students/{id}/documents`
+
+Returns active (non-deleted) supporting documents only, newest first.
+
+### Response item `StudentDocumentResponse`
+
+`id`, `documentType`, `originalFileName`, `contentType`, `fileSize`, `uploadedDate`
+
+Does **not** return `storagePath` / `storedFileName`.
+
+### Errors
+
+* `401` / `403` — as above
+* `404` — student not found
+
+---
+
+## Download student document (Milestone 6)
+
+`GET /students/{id}/documents/{documentId}/download`
+
+Returns file bytes with `Content-Disposition: attachment` (original filename) and stored `Content-Type`.
+
+Document must belong to the given student and not be soft-deleted.
+
+### Errors
+
+* `401` / `403` — as above
+* `404` — student or document not found / ownership mismatch / missing storage object
+
+---
+
 GET
 
 ```
@@ -178,12 +245,15 @@ Supports
 * Pagination
 * Sorting
 * Filtering
+*(Milestone 8)*
 
 GET
 
 ```
 /students/{id}
 ```
+
+*(See Get student profile above.)*
 
 POST
 
@@ -209,6 +279,7 @@ Supports
 * Update Student
 * Replace Documents
 * Upload Additional Documents
+*(Milestone 7)*
 
 DELETE
 
@@ -217,6 +288,7 @@ DELETE
 ```
 
 Soft Delete
+*(Milestone 9)*
 
 PATCH
 
@@ -225,6 +297,7 @@ PATCH
 ```
 
 Admin Only
+*(Milestone 9)*
 
 ---
 
@@ -234,15 +307,12 @@ Documents are managed through Student APIs.
 
 There are no standalone CRUD APIs for document management.
 
-Optional endpoints
+Milestone 6 endpoints:
 
-GET
+* `GET /students/{id}/documents` — list
+* `GET /students/{id}/documents/{documentId}/download` — download
 
-```
-/students/{id}/documents/{documentId}
-```
-
-Download
+Later milestones:
 
 DELETE
 
@@ -251,6 +321,7 @@ DELETE
 ```
 
 Logical document removal.
+*(Milestone 7+)*
 
 ---
 

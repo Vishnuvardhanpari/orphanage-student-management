@@ -1,0 +1,98 @@
+@reference "../../../../../styles.css";
+
+.student-profile {
+  @apply flex flex-col gap-4;
+}
+
+.student-profile__loading {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.student-profile__hero {
+  @apply flex flex-col gap-4 rounded-xl border border-surface-border bg-surface-elevated p-6 sm:flex-row sm:items-center;
+}
+
+.student-profile__photo {
+  @apply h-32 w-32 shrink-0 overflow-hidden rounded-xl border border-surface-border bg-surface;
+
+  img {
+    @apply h-full w-full object-cover;
+  }
+}
+
+.student-profile__photo-placeholder {
+  @apply flex h-full w-full flex-col items-center justify-center gap-1 bg-surface text-surface-muted-fg;
+
+  span {
+    @apply text-3xl font-semibold text-surface-fg;
+  }
+
+  p {
+    @apply m-0 text-xs;
+  }
+}
+
+.student-profile__summary {
+  @apply flex flex-col gap-2;
+
+  h2 {
+    @apply m-0 text-2xl font-semibold text-surface-fg;
+  }
+
+  p {
+    @apply m-0 text-sm text-surface-muted-fg;
+  }
+}
+
+.student-profile__badge {
+  @apply inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold;
+
+  &--ok {
+    @apply bg-accent-500/15 text-accent-700;
+  }
+
+  &--off {
+    @apply bg-inactive-500/15 text-inactive-500;
+  }
+}
+
+.student-profile__section {
+  @apply flex flex-col gap-4 rounded-xl border border-surface-border bg-surface-elevated p-6;
+
+  h3 {
+    @apply m-0 text-lg font-semibold text-surface-fg;
+  }
+}
+
+.student-profile__grid {
+  @apply m-0 grid gap-4 sm:grid-cols-2;
+
+  dt {
+    @apply text-xs font-medium uppercase tracking-wide text-surface-muted-fg;
+  }
+
+  dd {
+    @apply mt-1 text-sm text-surface-fg whitespace-pre-wrap;
+  }
+}
+
+.student-profile__span-2 {
+  @apply sm:col-span-2;
+}
+
+.student-profile__docs {
+  @apply flex flex-col gap-2 overflow-x-auto;
+}
+
+.student-profile__docs-head,
+.student-profile__docs-row {
+  @apply grid min-w-[40rem] grid-cols-5 items-center gap-3 text-sm;
+}
+
+.student-profile__docs-head {
+  @apply border-b border-surface-border pb-2 text-xs font-medium uppercase tracking-wide text-surface-muted-fg;
+}
+
+.student-profile__docs-row {
+  @apply border-b border-surface-border py-2 text-surface-fg last:border-b-0;
+}

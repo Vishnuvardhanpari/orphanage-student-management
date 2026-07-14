@@ -198,7 +198,7 @@ export class StudentFormPage {
             this.notifications.success(
               `Student ${event.response.admissionNumber} registered successfully.`,
             );
-            void this.router.navigateByUrl(APP_PATHS.students);
+            void this.router.navigateByUrl(`${APP_PATHS.students}/${event.response.id}`);
             return;
           }
           if (this.hasFilesAttached()) {

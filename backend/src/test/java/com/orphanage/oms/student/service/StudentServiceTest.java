@@ -15,8 +15,12 @@ import com.orphanage.oms.security.UserPrincipal;
 import com.orphanage.oms.storage.StorageService;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
+import com.orphanage.oms.student.dto.StudentDetailResponse;
+import com.orphanage.oms.student.dto.StudentDocumentResponse;
+import com.orphanage.oms.student.dto.StoredFilePayload;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
+import com.orphanage.oms.student.enums.DocumentType;
 import com.orphanage.oms.student.enums.Gender;
 import com.orphanage.oms.student.enums.StudentStatus;
 import com.orphanage.oms.student.mapper.StudentMapper;
@@ -26,9 +30,11 @@ import com.orphanage.oms.user.entity.Role;
 import com.orphanage.oms.user.entity.User;
 import com.orphanage.oms.user.enums.AuthProvider;
 import com.orphanage.oms.user.enums.RoleName;
+import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -219,6 +225,181 @@ class StudentServiceTest {
         assertThatThrownBy(() -> studentService.create(request, null, List.of(document), List.of()))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("documentTypes");
+    }
+
+    @Test
+    void getByIdReturnsDetail() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .admissionNumber("ADM-010")
+                .firstName("Anita")
+                .gender(Gender.FEMALE)
+                .dateOfBirth(LocalDate.of(2014, 3, 15))
+                .admissionDate(LocalDate.of(2024, 6, 1))
+                .status(StudentStatus.ACTIVE)
+                .profilePhotoPath("student-documents/" + studentId + "/profile-photo.jpg")
+                .createdDate(Instant.parse("2026-01-01T00:00:00Z"))
+                .updatedDate(Instant.parse("2026-01-02T00:00:00Z"))
+                .build();
+        StudentDetailResponse detail = new StudentDetailResponse(
+                studentId,
+                "ADM-010",
+                "Anita",
+                null,
+                Gender.FEMALE,
+                LocalDate.of(2014, 3, 15),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2024, 6, 1),
+                null,
+                null,
+                null,
+                StudentStatus.ACTIVE,
+                true,
+                Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-02T00:00:00Z"));
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentMapper.toDetailResponse(student)).thenReturn(detail);
+
+        assertThat(studentService.getById(studentId).hasProfilePhoto()).isTrue();
+        assertThat(studentService.getById(studentId).admissionNumber()).isEqualTo("ADM-010");
+    }
+
+    @Test
+    void getByIdThrowsWhenMissing() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.getById(studentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Student not found");
+    }
+
+    @Test
+    void listDocumentsRequiresStudent() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.listDocuments(studentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Student not found");
+    }
+
+    @Test
+    void listDocumentsMapsActiveDocuments() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder().id(studentId).admissionNumber("ADM-011").build();
+        StudentDocument document = StudentDocument.builder()
+                .id(UUID.randomUUID())
+                .student(student)
+                .documentType(DocumentType.AADHAAR_CARD)
+                .originalFileName("aadhaar.pdf")
+                .storedFileName("aadhaar.pdf")
+                .storagePath("student-documents/" + studentId + "/aadhaar.pdf")
+                .contentType("application/pdf")
+                .fileSize(10L)
+                .uploadedDate(Instant.parse("2026-01-01T00:00:00Z"))
+                .build();
+        StudentDocumentResponse mapped = new StudentDocumentResponse(
+                document.getId(),
+                DocumentType.AADHAAR_CARD,
+                "aadhaar.pdf",
+                "application/pdf",
+                10L,
+                Instant.parse("2026-01-01T00:00:00Z"));
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentDocumentRepository.findByStudent_IdOrderByUploadedDateDesc(studentId))
+                .thenReturn(List.of(document));
+        when(studentMapper.toDocumentResponse(document)).thenReturn(mapped);
+
+        assertThat(studentService.listDocuments(studentId)).containsExactly(mapped);
+    }
+
+    @Test
+    void downloadDocumentThrowsWhenOwnershipMismatch() {
+        UUID studentId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId))
+                .thenReturn(Optional.of(Student.builder().id(studentId).build()));
+        when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.downloadDocument(studentId, documentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Document not found");
+    }
+
+    @Test
+    void downloadDocumentReturnsPayload() {
+        UUID studentId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        Student student = Student.builder().id(studentId).build();
+        StudentDocument document = StudentDocument.builder()
+                .id(documentId)
+                .student(student)
+                .documentType(DocumentType.BIRTH_CERTIFICATE)
+                .originalFileName("birth.pdf")
+                .storedFileName("birth.pdf")
+                .storagePath("student-documents/" + studentId + "/birth.pdf")
+                .contentType("application/pdf")
+                .fileSize(4L)
+                .build();
+        byte[] bytes = "%PDF".getBytes();
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
+                .thenReturn(Optional.of(document));
+        when(storageService.load(document.getStoragePath()))
+                .thenReturn(new ByteArrayInputStream(bytes));
+
+        StoredFilePayload payload = studentService.downloadDocument(studentId, documentId);
+        assertThat(payload.fileName()).isEqualTo("birth.pdf");
+        assertThat(payload.contentType()).isEqualTo("application/pdf");
+        assertThat(payload.contentLength()).isEqualTo(4L);
+    }
+
+    @Test
+    void loadProfilePhotoThrowsWhenMissing() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId))
+                .thenReturn(Optional.of(Student.builder().id(studentId).profilePhotoPath(null).build()));
+
+        assertThatThrownBy(() -> studentService.loadProfilePhoto(studentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Profile photo not found");
+    }
+
+    @Test
+    void loadProfilePhotoReturnsJpegPayload() {
+        UUID studentId = UUID.randomUUID();
+        String path = "student-documents/" + studentId + "/profile-photo.jpg";
+        Student student = Student.builder().id(studentId).profilePhotoPath(path).build();
+        byte[] bytes = new byte[] {(byte) 0xFF, (byte) 0xD8};
+
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(storageService.load(path)).thenReturn(new ByteArrayInputStream(bytes));
+
+        StoredFilePayload payload = studentService.loadProfilePhoto(studentId);
+        assertThat(payload.contentType()).isEqualTo("image/jpeg");
+        assertThat(payload.fileName()).isEqualTo("profile-photo.jpg");
     }
 
     private CreateStudentRequest sampleRequest(String admissionNumber, String aadhaar) {

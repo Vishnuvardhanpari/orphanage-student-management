@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 5 — Student Registration (implementation on `milestone/student-registration`)
+Milestone 6 — Student Profile (completed and closed; merged to `main`)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 5 — Student Registration
+Milestone 6 — Student Profile (complete)
 
 ---
 
@@ -130,7 +130,7 @@ Milestone 5 — Student Registration
 
 ---
 
-## Milestone 5 — Student Registration (in progress on `milestone/student-registration`)
+## Milestone 5 — Student Registration (completed and closed; merged to `main`)
 
 ### Backend
 
@@ -154,35 +154,75 @@ Milestone 5 — Student Registration
 
 ### Milestone 5 QA bug fixes (BUG-001–009)
 
-* BUG-001–009 resolved on `milestone/student-registration` (GitHub #9–#17)
+* BUG-001–009 resolved; branch `milestone/student-registration` completed and closed
 
-### Out of scope (Milestone 6+)
+---
 
-* List / search / GET by id / update / profile / soft delete / restore / document download
+## Milestone 6 — Student Profile (completed and closed; merged to `main`)
+
+### Backend
+
+* `StorageService.load` for local + GCS (`?alt=media`)
+* `GET /api/v1/students/{id}` — full detail DTO with `hasProfilePhoto` (no storage paths)
+* `GET /api/v1/students/{id}/documents` — active documents only
+* `GET /api/v1/students/{id}/documents/{documentId}/download` — attachment stream
+* `GET /api/v1/students/{id}/photo` — inline image stream
+* CORS exposes `Content-Disposition` for cross-origin download filenames
+* Unit + integration tests for profile, download, photo, 404, auth
+
+### Frontend
+
+* Profile page at `/students/:id` (sections, photo blob URL, documents + download)
+* Post-registration navigate to `/students/{id}`
+* `StudentService` getById / listDocuments / fetchPhoto / downloadDocument
+* Profile Back control uses button + navigate (no nested button-in-anchor)
+* Gender display uses readable labels; photo load failures surface via toast + unavailable state
+* Document downloads disable all Download actions while one is in progress
+* List page copy reflects M6 profiles (list/search reserved for Milestone 8)
+* Component tests for profile page; `fetchPhoto` covered in StudentService specs
+
+### Docs
+
+* `docs/07_API_Design.md` Milestone 6 contracts
+* Session context: M6 closed and merged to `main`
+
+### Milestone 6 QA bug fixes (BUG-001–008)
+
+* BUG-001–008 resolved and merged to `main`
+  * [#22](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/22) nested Back button
+  * [#20](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/20) stale list copy
+  * [#21](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/21) Content-Disposition CORS / filename fallback
+  * [#26](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/26) silent photo errors
+  * [#23](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/23) download busy-state UX
+  * [#24](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/24) raw gender enum display
+  * [#27](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/27) missing profile page tests
+  * [#25](https://github.com/Vishnuvardhanpari/orphanage-student-management/issues/25) missing `fetchPhoto` service test
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–4. Student registration specifics:
+Unchanged from Milestone 1–5. Student registration / profile specifics:
 
 * Create-only multipart API; profile photo is not stored as a `PHOTOGRAPH` document row
 * Storage provider selected by `oms.storage.type` (profile-driven DI)
 * GCS uses Application Default Credentials + JSON upload API (no full google-cloud-storage SDK)
 * Admission number uniqueness is case-insensitive at DB and application layers; soft-deleted rows remain reserved
+* Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
+* CORS exposes `Content-Disposition` so browsers can read download filenames cross-origin
 
 ---
 
 # Current Objective
 
-Complete Milestone 5 self-review / independent review / approval after BUG-001–009 fixes, then commit on `milestone/student-registration`.
+Start Milestone 7 — Student Update when ready.
 
 ---
 
 # Current Branch
 
 ```text
-milestone/student-registration
+main
 ```
 
 ---
@@ -194,14 +234,15 @@ milestone/student-registration
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore queries must bypass explicitly (native/`@Query`)
-* Milestone 5 = registration only
+* Milestone 5 = registration only (completed)
+* Milestone 6 = profile view + document list/download + authenticated `GET /students/{id}/photo`; after registration redirect to `/students/{id}` (completed)
+* Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 
 ---
 
 # Pending Milestones
 
-* Milestone 5 — Student Registration (await review / approval / commit after QA bug fixes)
-* Milestone 6 — Student Profile
+* Milestone 7 — Student Update
 * … (see roadmap)
 
 ---
@@ -216,9 +257,8 @@ None.
 
 # Next Session Goal
 
-1. User approval of Milestone 5 registration API + form (including BUG-001–009 fixes)
-2. Commit on `milestone/student-registration` when requested
-3. Start Milestone 6 — Student Profile after merge
+1. Begin Milestone 7 — Student Update (planning → architecture review → implementation)
+2. Create / switch to `milestone/student-update` when approved
 
 ---
 
