@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, filter, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -7,6 +7,8 @@ import {
   CreateStudentRequest,
   DocumentType,
   StudentCreatedResponse,
+  StudentDetail,
+  StudentDocumentMeta,
 } from '../models/student.models';
 
 export interface StudentCreateProgress {
@@ -15,8 +17,14 @@ export interface StudentCreateProgress {
   response?: StudentCreatedResponse;
 }
 
+export interface StudentFileDownload {
+  blob: Blob;
+  /** Parsed from Content-Disposition when the header is readable; otherwise null. */
+  fileName: string | null;
+}
+
 /**
- * Student registration API client.
+ * Student registration and profile API client.
  */
 @Injectable({ providedIn: 'root' })
 export class StudentService {
@@ -77,4 +85,55 @@ export class StudentService {
         }),
       );
   }
+
+  getById(id: string): Observable<StudentDetail> {
+    return this.http.get<StudentDetail>(`${this.baseUrl}/${id}`);
+  }
+
+  listDocuments(studentId: string): Observable<StudentDocumentMeta[]> {
+    return this.http.get<StudentDocumentMeta[]>(`${this.baseUrl}/${studentId}/documents`);
+  }
+
+  fetchPhoto(studentId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${studentId}/photo`, {
+      responseType: 'blob',
+    });
+  }
+
+  downloadDocument(studentId: string, documentId: string): Observable<StudentFileDownload> {
+    return this.http
+      .get(`${this.baseUrl}/${studentId}/documents/${documentId}/download`, {
+        observe: 'response',
+        responseType: 'blob',
+      })
+      .pipe(
+        map((response: HttpResponse<Blob>) => ({
+          blob: response.body ?? new Blob(),
+          fileName: parseContentDispositionFileName(
+            response.headers.get('Content-Disposition'),
+          ),
+        })),
+      );
+  }
+}
+
+/** Parses RFC 5987 / quoted filename from Content-Disposition. */
+export function parseContentDispositionFileName(header: string | null): string | null {
+  if (!header) {
+    return null;
+  }
+  const utf8Match = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {
+      return utf8Match[1].trim();
+    }
+  }
+  const quotedMatch = /filename\s*=\s*"([^"]+)"/i.exec(header);
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1];
+  }
+  const plainMatch = /filename\s*=\s*([^;]+)/i.exec(header);
+  return plainMatch?.[1]?.trim() ?? null;
 }

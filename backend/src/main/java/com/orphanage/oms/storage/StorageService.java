@@ -24,4 +24,15 @@ public interface StorageService {
      * @param relativePath storage-relative path
      */
     void delete(String relativePath);
+
+    /**
+     * Opens a stream to a previously stored object.
+     *
+     * <p>Callers must close the returned stream. Missing objects yield a not-found
+     * {@link com.orphanage.oms.exception.ApiException}.
+     *
+     * @param relativePath storage-relative path
+     * @return stream of object bytes
+     */
+    InputStream load(String relativePath);
 }

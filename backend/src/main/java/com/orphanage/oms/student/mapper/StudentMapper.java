@@ -2,7 +2,10 @@ package com.orphanage.oms.student.mapper;
 
 import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
+import com.orphanage.oms.student.dto.StudentDetailResponse;
+import com.orphanage.oms.student.dto.StudentDocumentResponse;
 import com.orphanage.oms.student.entity.Student;
+import com.orphanage.oms.student.entity.StudentDocument;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -29,4 +32,12 @@ public interface StudentMapper {
     Student toEntity(CreateStudentRequest request);
 
     StudentCreatedResponse toCreatedResponse(Student student);
+
+    @Mapping(
+            target = "hasProfilePhoto",
+            expression = "java(student.getProfilePhotoPath() != null"
+                    + " && !student.getProfilePhotoPath().isBlank())")
+    StudentDetailResponse toDetailResponse(Student student);
+
+    StudentDocumentResponse toDocumentResponse(StudentDocument document);
 }

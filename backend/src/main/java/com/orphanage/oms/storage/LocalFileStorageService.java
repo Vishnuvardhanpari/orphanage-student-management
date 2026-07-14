@@ -58,6 +58,22 @@ public class LocalFileStorageService implements StorageService {
         }
     }
 
+    @Override
+    public InputStream load(String relativePath) {
+        Path target = resolveSafe(relativePath);
+        if (!Files.isRegularFile(target)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Stored file was not found.");
+        }
+        try {
+            return Files.newInputStream(target);
+        } catch (IOException ex) {
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Storage Error",
+                    "Failed to read stored file.");
+        }
+    }
+
     private Path resolveSafe(String relativePath) {
         String normalized = normalizeRelative(relativePath);
         Path resolved = basePath.resolve(normalized).normalize();

@@ -126,6 +126,55 @@ public class GcsStorageService implements StorageService {
         }
     }
 
+    @Override
+    public InputStream load(String relativePath) {
+        String objectName = normalizeRelative(relativePath);
+        try {
+            String encodedName = URLEncoder.encode(objectName, StandardCharsets.UTF_8).replace("+", "%20");
+            URI uri = URI.create(
+                    "https://storage.googleapis.com/storage/v1/b/"
+                            + URLEncoder.encode(bucket, StandardCharsets.UTF_8)
+                            + "/o/"
+                            + encodedName
+                            + "?alt=media");
+
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                    .timeout(Duration.ofMinutes(2))
+                    .header("Authorization", "Bearer " + accessToken())
+                    .GET()
+                    .build();
+
+            HttpResponse<InputStream> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() == 404) {
+                try (InputStream ignored = response.body()) {
+                    // discard
+                }
+                throw new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Stored file was not found.");
+            }
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                try (InputStream errorBody = response.body()) {
+                    log.error("GCS download failed status={}", response.statusCode());
+                }
+                throw new ApiException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Storage Error",
+                        "Failed to read file from Google Cloud Storage.");
+            }
+            return response.body();
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (IOException | InterruptedException ex) {
+            if (ex instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Storage Error",
+                    "Failed to read file from Google Cloud Storage.");
+        }
+    }
+
     private String accessToken() throws IOException {
         credentials.refreshIfExpired();
         if (credentials.getAccessToken() == null || credentials.getAccessToken().getTokenValue() == null) {

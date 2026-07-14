@@ -64,8 +64,68 @@ export interface StudentCreatedResponse {
   createdDate: string;
 }
 
+export interface StudentDetail {
+  id: string;
+  admissionNumber: string;
+  firstName: string;
+  lastName: string | null;
+  gender: Gender;
+  dateOfBirth: string;
+  bloodGroup: string | null;
+  religion: string | null;
+  nationality: string | null;
+  aadhaarNumber: string | null;
+  phoneNumber: string | null;
+  guardianName: string | null;
+  guardianRelationship: string | null;
+  guardianPhone: string | null;
+  guardianAddress: string | null;
+  schoolName: string | null;
+  standard: string | null;
+  medium: string | null;
+  previousSchool: string | null;
+  medicalConditions: string | null;
+  allergies: string | null;
+  disability: string | null;
+  emergencyNotes: string | null;
+  admissionDate: string;
+  exitDate: string | null;
+  exitReason: string | null;
+  exitRemarks: string | null;
+  status: StudentStatus;
+  hasProfilePhoto: boolean;
+  createdDate: string;
+  updatedDate: string;
+}
+
+export interface StudentDocumentMeta {
+  id: string;
+  documentType: DocumentType;
+  originalFileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedDate: string;
+}
+
 export interface PendingDocumentUpload {
   file: File;
   documentType: DocumentType;
   previewUrl?: string;
 }
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  [DocumentType.Photograph]: 'Photograph',
+  [DocumentType.AadhaarCard]: 'Aadhaar card',
+  [DocumentType.BirthCertificate]: 'Birth certificate',
+  [DocumentType.MedicalCertificate]: 'Medical certificate',
+  [DocumentType.MarkSheet]: 'Mark sheet',
+  [DocumentType.TransferCertificate]: 'Transfer certificate',
+  [DocumentType.IdentityProof]: 'Identity proof',
+  [DocumentType.Other]: 'Other',
+};
+
+export const GENDER_LABELS: Record<Gender, string> = {
+  [Gender.Male]: 'Male',
+  [Gender.Female]: 'Female',
+  [Gender.Other]: 'Other',
+};

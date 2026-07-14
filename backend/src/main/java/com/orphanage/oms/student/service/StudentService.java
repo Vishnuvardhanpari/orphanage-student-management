@@ -5,6 +5,9 @@ import com.orphanage.oms.security.UserPrincipal;
 import com.orphanage.oms.storage.StorageService;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
+import com.orphanage.oms.student.dto.StudentDetailResponse;
+import com.orphanage.oms.student.dto.StudentDocumentResponse;
+import com.orphanage.oms.student.dto.StoredFilePayload;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
 import com.orphanage.oms.student.enums.DocumentType;
@@ -28,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Student registration: create student record with optional photo and documents.
+ * Student registration and profile read operations.
  */
 @Service
 public class StudentService {
@@ -52,6 +55,55 @@ public class StudentService {
         this.studentMapper = studentMapper;
         this.fileValidator = fileValidator;
         this.storageService = storageService;
+    }
+
+    @Transactional(readOnly = true)
+    public StudentDetailResponse getById(UUID id) {
+        Student student = requireStudent(id);
+        log.info("Student profile viewed id={}", id);
+        return studentMapper.toDetailResponse(student);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentDocumentResponse> listDocuments(UUID studentId) {
+        requireStudent(studentId);
+        return studentDocumentRepository.findByStudent_IdOrderByUploadedDateDesc(studentId).stream()
+                .map(studentMapper::toDocumentResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public StoredFilePayload downloadDocument(UUID studentId, UUID documentId) {
+        requireStudent(studentId);
+        StudentDocument document = studentDocumentRepository
+                .findByIdAndStudent_Id(documentId, studentId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "Not Found", "Document not found."));
+
+        InputStream content = storageService.load(document.getStoragePath());
+        log.info("Student document downloaded studentId={} documentId={}", studentId, documentId);
+        return new StoredFilePayload(
+                content,
+                document.getContentType(),
+                document.getOriginalFileName(),
+                document.getFileSize());
+    }
+
+    @Transactional(readOnly = true)
+    public StoredFilePayload loadProfilePhoto(UUID studentId) {
+        Student student = requireStudent(studentId);
+        String photoPath = student.getProfilePhotoPath();
+        if (photoPath == null || photoPath.isBlank()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Profile photo not found.");
+        }
+
+        InputStream content = storageService.load(photoPath);
+        String contentType = guessPhotoContentType(photoPath);
+        String fileName = photoPath.contains("/")
+                ? photoPath.substring(photoPath.lastIndexOf('/') + 1)
+                : photoPath;
+        log.info("Student photo viewed id={}", studentId);
+        return new StoredFilePayload(content, contentType, fileName, -1L);
     }
 
     @Transactional
@@ -241,6 +293,23 @@ public class StudentService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized", "Authentication required.");
         }
         return principal.getId();
+    }
+
+    private Student requireStudent(UUID id) {
+        return studentRepository
+                .findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Student not found."));
+    }
+
+    private static String guessPhotoContentType(String path) {
+        String lower = path.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".png")) {
+            return "image/png";
+        }
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        return "application/octet-stream";
     }
 
     private static String blankToNull(String value) {
