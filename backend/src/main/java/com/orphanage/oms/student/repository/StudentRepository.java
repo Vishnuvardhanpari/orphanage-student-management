@@ -3,13 +3,15 @@ package com.orphanage.oms.student.repository;
 import com.orphanage.oms.student.entity.Student;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
  * Persistence for student records.
  */
-public interface StudentRepository extends JpaRepository<Student, UUID> {
+public interface StudentRepository
+        extends JpaRepository<Student, UUID>, JpaSpecificationExecutor<Student> {
 
     /**
      * Uniqueness check including soft-deleted rows (bypasses {@code @SQLRestriction}).

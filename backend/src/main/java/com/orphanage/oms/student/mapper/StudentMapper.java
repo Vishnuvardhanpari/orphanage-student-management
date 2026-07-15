@@ -4,6 +4,7 @@ import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
+import com.orphanage.oms.student.dto.StudentSummaryResponse;
 import com.orphanage.oms.student.dto.UpdateStudentRequest;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
@@ -59,4 +60,6 @@ public interface StudentMapper {
     StudentDetailResponse toDetailResponse(Student student);
 
     StudentDocumentResponse toDocumentResponse(StudentDocument document);
+
+    StudentSummaryResponse toSummaryResponse(Student student);
 }

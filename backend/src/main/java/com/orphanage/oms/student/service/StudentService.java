@@ -7,24 +7,33 @@ import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
+import com.orphanage.oms.student.dto.StudentSummaryResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
 import com.orphanage.oms.student.dto.UpdateStudentRequest;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
 import com.orphanage.oms.student.enums.DocumentType;
+import com.orphanage.oms.student.enums.Gender;
 import com.orphanage.oms.student.enums.StudentStatus;
 import com.orphanage.oms.student.mapper.StudentMapper;
 import com.orphanage.oms.student.repository.StudentDocumentRepository;
 import com.orphanage.oms.student.repository.StudentRepository;
+import com.orphanage.oms.student.repository.StudentSpecifications;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,6 +48,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class StudentService {
 
     private static final Logger log = LoggerFactory.getLogger(StudentService.class);
+
+    private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
+            "admissionNumber",
+            "firstName",
+            "lastName",
+            "gender",
+            "dateOfBirth",
+            "admissionDate",
+            "status",
+            "createdDate");
 
     private final StudentRepository studentRepository;
     private final StudentDocumentRepository studentDocumentRepository;
@@ -57,6 +76,81 @@ public class StudentService {
         this.studentMapper = studentMapper;
         this.fileValidator = fileValidator;
         this.storageService = storageService;
+    }
+
+    /**
+     * Paginated student list with optional global search and combinable filters.
+     * Age bounds are translated into a date-of-birth window; age is never persisted.
+     */
+    @Transactional(readOnly = true)
+    public Page<StudentSummaryResponse> list(
+            String search,
+            Gender gender,
+            StudentStatus status,
+            Integer admissionYear,
+            String school,
+            Integer ageMin,
+            Integer ageMax,
+            Pageable pageable) {
+        validateSort(pageable.getSort());
+        validateAgeRange(ageMin, ageMax);
+
+        List<Specification<Student>> specs = new ArrayList<>();
+
+        String normalizedSearch = blankToNull(search);
+        if (normalizedSearch != null) {
+            specs.add(StudentSpecifications.matchesSearch(normalizedSearch));
+        }
+        if (gender != null) {
+            specs.add(StudentSpecifications.hasGender(gender));
+        }
+        if (status != null) {
+            specs.add(StudentSpecifications.hasStatus(status));
+        }
+        if (admissionYear != null) {
+            specs.add(StudentSpecifications.admittedInYear(admissionYear));
+        }
+        String normalizedSchool = blankToNull(school);
+        if (normalizedSchool != null) {
+            specs.add(StudentSpecifications.schoolContains(normalizedSchool));
+        }
+        if (ageMin != null || ageMax != null) {
+            LocalDate today = LocalDate.now();
+            LocalDate maxDateOfBirth = ageMin != null ? today.minusYears(ageMin) : null;
+            LocalDate minDateOfBirthExclusive =
+                    ageMax != null ? today.minusYears(ageMax + 1L) : null;
+            specs.add(StudentSpecifications.bornBetween(minDateOfBirthExclusive, maxDateOfBirth));
+        }
+
+        return studentRepository
+                .findAll(Specification.allOf(specs), pageable)
+                .map(studentMapper::toSummaryResponse);
+    }
+
+    private static void validateSort(Sort sort) {
+        for (Sort.Order order : sort) {
+            if (!ALLOWED_SORT_PROPERTIES.contains(order.getProperty())) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Validation Error",
+                        "Unsupported sort property: " + order.getProperty());
+            }
+        }
+    }
+
+    private static void validateAgeRange(Integer ageMin, Integer ageMax) {
+        if ((ageMin != null && ageMin < 0) || (ageMax != null && ageMax < 0)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    "Age filters must not be negative.");
+        }
+        if (ageMin != null && ageMax != null && ageMin > ageMax) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    "ageMin must be less than or equal to ageMax.");
+        }
     }
 
     @Transactional(readOnly = true)

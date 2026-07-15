@@ -1,7 +1,7 @@
 package com.orphanage.oms.user.controller;
 
+import com.orphanage.oms.common.dto.PageResponse;
 import com.orphanage.oms.user.dto.CreateUserRequest;
-import com.orphanage.oms.user.dto.PageResponse;
 import com.orphanage.oms.user.dto.ResetPasswordRequest;
 import com.orphanage.oms.user.dto.UpdateUserRequest;
 import com.orphanage.oms.user.dto.UserDetailResponse;

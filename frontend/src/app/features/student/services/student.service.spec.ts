@@ -30,6 +30,85 @@ describe('StudentService', () => {
     httpMock.verify();
   });
 
+  it('lists students with all query parameters serialized', () => {
+    let total: number | undefined;
+    service
+      .list({
+        search: 'anita',
+        gender: Gender.Female,
+        status: StudentStatus.Active,
+        admissionYear: 2024,
+        school: 'Green Valley',
+        ageMin: 8,
+        ageMax: 14,
+        page: 2,
+        size: 10,
+        sort: 'firstName,asc',
+      })
+      .subscribe((page) => {
+        total = page.totalElements;
+      });
+
+    const req = httpMock.expectOne(
+      (request) =>
+        request.url === `${environment.apiBaseUrl}/${API_PATHS.students}` &&
+        request.method === 'GET',
+    );
+    expect(req.request.params.get('search')).toBe('anita');
+    expect(req.request.params.get('gender')).toBe('FEMALE');
+    expect(req.request.params.get('status')).toBe('ACTIVE');
+    expect(req.request.params.get('admissionYear')).toBe('2024');
+    expect(req.request.params.get('school')).toBe('Green Valley');
+    expect(req.request.params.get('ageMin')).toBe('8');
+    expect(req.request.params.get('ageMax')).toBe('14');
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('size')).toBe('10');
+    expect(req.request.params.get('sort')).toBe('firstName,asc');
+
+    req.flush({
+      content: [],
+      totalElements: 42,
+      totalPages: 5,
+      size: 10,
+      number: 2,
+      first: false,
+      last: false,
+      empty: true,
+    });
+    expect(total).toBe(42);
+  });
+
+  it('lists students omitting unset filters and applying paging defaults', () => {
+    service.list().subscribe();
+
+    const req = httpMock.expectOne(
+      (request) =>
+        request.url === `${environment.apiBaseUrl}/${API_PATHS.students}` &&
+        request.method === 'GET',
+    );
+    expect(req.request.params.has('search')).toBeFalse();
+    expect(req.request.params.has('gender')).toBeFalse();
+    expect(req.request.params.has('status')).toBeFalse();
+    expect(req.request.params.has('admissionYear')).toBeFalse();
+    expect(req.request.params.has('school')).toBeFalse();
+    expect(req.request.params.has('ageMin')).toBeFalse();
+    expect(req.request.params.has('ageMax')).toBeFalse();
+    expect(req.request.params.has('sort')).toBeFalse();
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('20');
+
+    req.flush({
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      size: 20,
+      number: 0,
+      first: true,
+      last: true,
+      empty: true,
+    });
+  });
+
   it('posts multipart registration payload and reports progress', () => {
     const photo = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
     const doc = new File(['pdf'], 'aadhaar.pdf', { type: 'application/pdf' });

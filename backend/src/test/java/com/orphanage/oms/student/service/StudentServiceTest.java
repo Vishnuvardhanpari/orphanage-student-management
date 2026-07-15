@@ -17,6 +17,7 @@ import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
+import com.orphanage.oms.student.dto.StudentSummaryResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
 import com.orphanage.oms.student.dto.UpdateStudentRequest;
 import com.orphanage.oms.student.entity.Student;
@@ -42,9 +43,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -91,6 +99,90 @@ class StudentServiceTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void listMapsMatchingStudentsToSummaries() {
+        Student student = Student.builder()
+                .id(UUID.randomUUID())
+                .admissionNumber("ADM-100")
+                .firstName("Anita")
+                .gender(Gender.FEMALE)
+                .dateOfBirth(LocalDate.of(2014, 3, 15))
+                .admissionDate(LocalDate.of(2024, 6, 1))
+                .status(StudentStatus.ACTIVE)
+                .build();
+        StudentSummaryResponse summary = new StudentSummaryResponse(
+                student.getId(),
+                "ADM-100",
+                "Anita",
+                null,
+                Gender.FEMALE,
+                LocalDate.of(2014, 3, 15),
+                StudentStatus.ACTIVE,
+                null,
+                null,
+                LocalDate.of(2024, 6, 1));
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "admissionDate"));
+
+        when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(student), pageable, 1));
+        when(studentMapper.toSummaryResponse(student)).thenReturn(summary);
+
+        Page<StudentSummaryResponse> page = studentService.list(
+                "  anita  ", Gender.FEMALE, StudentStatus.ACTIVE, 2024, " Green Valley ", 8, 14, pageable);
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent()).containsExactly(summary);
+    }
+
+    @Test
+    void listWithoutFiltersDelegatesToRepository() {
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "firstName"));
+        when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        Page<StudentSummaryResponse> page = studentService.list(
+                "   ", null, null, null, "   ", null, null, pageable);
+
+        assertThat(page.getTotalElements()).isZero();
+        verify(studentRepository).findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable));
+    }
+
+    @Test
+    void listRejectsUnsupportedSortProperty() {
+        Pageable pageable = PageRequest.of(0, 20, Sort.by("aadhaarNumber"));
+
+        assertThatThrownBy(() -> studentService.list(
+                        null, null, null, null, null, null, null, pageable))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Unsupported sort property: aadhaarNumber");
+        verify(studentRepository, never())
+                .findAll(ArgumentMatchers.<Specification<Student>>any(), any(Pageable.class));
+    }
+
+    @Test
+    void listRejectsNegativeAgeBounds() {
+        Pageable pageable = PageRequest.of(0, 20);
+
+        assertThatThrownBy(() -> studentService.list(
+                        null, null, null, null, null, -1, null, pageable))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Age filters must not be negative.");
+        assertThatThrownBy(() -> studentService.list(
+                        null, null, null, null, null, null, -3, pageable))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Age filters must not be negative.");
+    }
+
+    @Test
+    void listRejectsAgeMinGreaterThanAgeMax() {
+        Pageable pageable = PageRequest.of(0, 20);
+
+        assertThatThrownBy(() -> studentService.list(
+                        null, null, null, null, null, 12, 8, pageable))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("ageMin must be less than or equal to ageMax.");
     }
 
     @Test

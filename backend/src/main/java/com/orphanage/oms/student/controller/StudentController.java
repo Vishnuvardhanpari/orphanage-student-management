@@ -1,11 +1,15 @@
 package com.orphanage.oms.student.controller;
 
+import com.orphanage.oms.common.dto.PageResponse;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
+import com.orphanage.oms.student.dto.StudentSummaryResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
 import com.orphanage.oms.student.dto.UpdateStudentRequest;
+import com.orphanage.oms.student.enums.Gender;
+import com.orphanage.oms.student.enums.StudentStatus;
 import com.orphanage.oms.student.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,6 +19,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -48,6 +55,22 @@ public class StudentController {
 
     public StudentController(StudentService studentService) {
         this.studentService = studentService;
+    }
+
+    @GetMapping
+    @Operation(summary = "List students with pagination, sorting, global search, and filters")
+    public PageResponse<StudentSummaryResponse> list(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Gender gender,
+            @RequestParam(required = false) StudentStatus status,
+            @RequestParam(required = false) Integer admissionYear,
+            @RequestParam(required = false) String school,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @PageableDefault(size = 20, sort = "admissionDate", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return PageResponse.from(studentService.list(
+                search, gender, status, admissionYear, school, ageMin, ageMax, pageable));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

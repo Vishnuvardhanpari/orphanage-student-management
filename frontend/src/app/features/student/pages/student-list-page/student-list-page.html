@@ -1,12 +1,158 @@
-<section>
+<section class="student-list">
   <app-page-header
     title="Students"
-    subtitle="Register new students. Profiles open after registration; list and search arrive in Milestone 8."
+    subtitle="Search, filter, and manage student records."
   >
-    <app-button variant="primary" type="button" (pressed)="goToRegister()">Add student</app-button>
+    <a [routerLink]="[paths.students, 'new']">
+      <app-button variant="primary">Add student</app-button>
+    </a>
   </app-page-header>
-  <app-empty-state
-    title="No student list yet"
-    description="Use Add student to register a new student. After registration you are taken to that student's profile. Direct profile URLs (/students/{id}) remain available for testing. Full listing and search will arrive in Milestone 8."
-  />
+
+  <form
+    class="student-list__filters"
+    [formGroup]="filterForm"
+    (ngSubmit)="applyFilters()"
+    aria-label="Student search and filters"
+  >
+    <label class="student-list__field student-list__field--search">
+      <span>Search</span>
+      <input
+        type="search"
+        formControlName="search"
+        placeholder="Name, admission no., Aadhaar, guardian, or phone"
+        class="student-list__input"
+      />
+    </label>
+    <label class="student-list__field">
+      <span>Gender</span>
+      <select formControlName="gender" class="student-list__input">
+        <option value="">All</option>
+        <option value="MALE">Male</option>
+        <option value="FEMALE">Female</option>
+        <option value="OTHER">Other</option>
+      </select>
+    </label>
+    <label class="student-list__field">
+      <span>Status</span>
+      <select formControlName="status" class="student-list__input">
+        <option value="">All</option>
+        <option value="ACTIVE">Active</option>
+        <option value="INACTIVE">Inactive</option>
+      </select>
+    </label>
+    <label class="student-list__field">
+      <span>Admission year</span>
+      <input
+        type="number"
+        formControlName="admissionYear"
+        placeholder="e.g. 2024"
+        min="1900"
+        class="student-list__input"
+      />
+    </label>
+    <label class="student-list__field">
+      <span>School</span>
+      <input
+        type="text"
+        formControlName="school"
+        placeholder="School name"
+        class="student-list__input"
+      />
+    </label>
+    <div class="student-list__field">
+      <span>Age range</span>
+      <div class="student-list__age-range">
+        <input
+          type="number"
+          formControlName="ageMin"
+          placeholder="Min"
+          min="0"
+          class="student-list__input student-list__input--age"
+          aria-label="Minimum age"
+        />
+        <span aria-hidden="true">–</span>
+        <input
+          type="number"
+          formControlName="ageMax"
+          placeholder="Max"
+          min="0"
+          class="student-list__input student-list__input--age"
+          aria-label="Maximum age"
+        />
+      </div>
+    </div>
+    <div class="student-list__filter-actions">
+      <app-button type="submit" variant="primary" size="sm">Apply</app-button>
+      <app-button type="button" variant="secondary" size="sm" (pressed)="clearFilters()">
+        Clear
+      </app-button>
+    </div>
+  </form>
+
+  @if (!loading() && loadFailed()) {
+    <app-empty-state
+      title="Unable to load students"
+      description="Something went wrong while loading the student list. Please try again."
+    >
+      <app-button type="button" variant="primary" size="sm" (pressed)="loadStudents()">
+        Retry
+      </app-button>
+    </app-empty-state>
+  } @else if (!loading() && students().length === 0) {
+    @if (filtersActive()) {
+      <app-empty-state
+        title="No matching students"
+        description="No students match the current search and filters. Try adjusting or clearing them."
+      />
+    } @else {
+      <app-empty-state
+        title="No students yet"
+        description="Use Add student to register the first student."
+      />
+    }
+  } @else {
+    <div
+      class="student-list__grid ag-theme-quartz"
+      [class.student-list__grid--loading]="loading()"
+    >
+      <ag-grid-angular
+        style="width: 100%; height: 100%;"
+        theme="legacy"
+        [rowData]="students()"
+        [columnDefs]="columnDefs"
+        [defaultColDef]="defaultColDef"
+        [context]="gridContext"
+        [suppressCellFocus]="true"
+        (gridReady)="onGridReady($event)"
+        (sortChanged)="onSortChanged($event)"
+      />
+    </div>
+
+    <div class="student-list__pager">
+      <span class="student-list__pager-meta">
+        {{ totalElements() }} student{{ totalElements() === 1 ? '' : 's' }}
+        · Page {{ page() + 1 }} of {{ totalPages() || 1 }}
+      </span>
+      <div class="student-list__pager-actions">
+        <app-button
+          type="button"
+          variant="secondary"
+          size="sm"
+          [disabled]="page() === 0 || loading()"
+          (pressed)="prevPage()"
+        >
+          Previous
+        </app-button>
+        <app-button
+          type="button"
+          variant="secondary"
+          size="sm"
+          [disabled]="(page() + 1) * pageSize() >= totalElements() || loading()"
+          (pressed)="nextPage()"
+        >
+          Next
+        </app-button>
+      </div>
+    </div>
+  }
 </section>

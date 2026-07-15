@@ -18,6 +18,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -68,6 +69,22 @@ public class GlobalExceptionHandler {
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.joining("; "));
 
+        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Error", message, request.getRequestURI());
+    }
+
+    /**
+     * Handles request parameter type/conversion failures (e.g. an invalid enum filter value).
+     *
+     * @param ex      the type mismatch exception
+     * @param request the current HTTP request
+     * @return a structured validation error response
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        String message = "Invalid value for parameter '" + ex.getName() + "'.";
         return buildResponse(HttpStatus.BAD_REQUEST, "Validation Error", message, request.getRequestURI());
     }
 

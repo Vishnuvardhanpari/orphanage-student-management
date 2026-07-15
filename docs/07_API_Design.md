@@ -367,18 +367,59 @@ Logical (soft) delete: sets `deleted = true` and `deleted_date`. The storage obj
 
 ---
 
-GET
+## List / search students (Milestone 8)
 
+`GET /students`
+
+Paginated student list with optional global search, combinable filters, and sorting. ADMIN and STAFF. Soft-deleted students are always excluded.
+
+### Query parameters (all optional)
+
+* `page` — zero-based page index (default `0`)
+* `size` — page size (default `20`)
+* `sort` — `property,direction` (default `admissionDate,desc`). Allowed properties: `admissionNumber`, `firstName`, `lastName`, `gender`, `dateOfBirth`, `admissionDate`, `status`, `createdDate`. Any other property → `400`.
+* `search` — case-insensitive contains match across first name, last name, full name, admission number, Aadhaar number, guardian name, and phone number
+* `gender` — `MALE` | `FEMALE` | `OTHER`
+* `status` — `ACTIVE` | `INACTIVE`
+* `admissionYear` — calendar year of `admissionDate` (e.g. `2024`)
+* `school` — case-insensitive contains match on school name
+* `ageMin` / `ageMax` — inclusive age range in whole years, translated server-side into a `dateOfBirth` window (age is derived, never persisted). `400` if negative or `ageMin > ageMax`.
+
+Filters may be combined; each omitted parameter is simply not applied.
+
+### Response `200`
+
+```json
+{
+  "content": [
+    {
+      "id": "uuid",
+      "admissionNumber": "ADM-2024-001",
+      "firstName": "Anita",
+      "lastName": "Sharma",
+      "gender": "FEMALE",
+      "dateOfBirth": "2014-03-15",
+      "status": "ACTIVE",
+      "schoolName": "Green Valley School",
+      "standard": "5",
+      "admissionDate": "2024-06-01"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": true,
+  "empty": false
+}
 ```
-/students
-```
 
-Supports
+### Errors
 
-* Pagination
-* Sorting
-* Filtering
-*(Milestone 8)*
+* `400` — invalid sort property, invalid age range, or invalid enum filter value
+* `401` — missing/invalid token
+* `403` — authenticated but not ADMIN/STAFF
 
 GET
 
