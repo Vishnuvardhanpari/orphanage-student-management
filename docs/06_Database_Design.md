@@ -196,6 +196,7 @@ Create indexes for:
 * aadhaar_number
 * guardian_name
 * admission_date
+* date_of_birth (Flyway `V6__add_students_search_indexes.sql`; supports the age-range filter translated into a date_of_birth range)
 * status
 * deleted
 * (deleted, status) composite for default list queries

@@ -101,6 +101,34 @@ export interface StudentDetail {
   updatedDate: string;
 }
 
+/** Compact student row returned by GET /api/v1/students (Milestone 8). */
+export interface StudentSummary {
+  id: string;
+  admissionNumber: string;
+  firstName: string;
+  lastName: string | null;
+  gender: Gender;
+  dateOfBirth: string;
+  status: StudentStatus;
+  schoolName: string | null;
+  standard: string | null;
+  admissionDate: string;
+}
+
+/** Query parameters for GET /api/v1/students. All filters are optional. */
+export interface StudentListParams {
+  search?: string;
+  gender?: Gender | '';
+  status?: StudentStatus | '';
+  admissionYear?: number | null;
+  school?: string;
+  ageMin?: number | null;
+  ageMax?: number | null;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
 export interface StudentDocumentMeta {
   id: string;
   documentType: DocumentType;

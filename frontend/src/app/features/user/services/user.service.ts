@@ -3,10 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { API_PATHS } from '../../../core/constants/api-paths';
+import { PageResponse } from '../../../shared/models/page.models';
 import {
   CreateUserRequest,
   ManagedUser,
-  PageResponse,
   ResetPasswordRequest,
   UpdateUserRequest,
   UserListParams,

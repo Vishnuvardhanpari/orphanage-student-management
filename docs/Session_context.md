@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 7 — Student Update (completed and closed; merged to `main` with QA bug fixes BUG-001–007)
+Milestone 8 — Student Search (completed and closed; merged to `main` with QA bug fixes #37–#43)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 7 — Student Update
+Milestone 8 — Student Search
 
 ---
 
@@ -234,6 +234,38 @@ Milestone 7 — Student Update
 
 ---
 
+## Milestone 8 — Student Search (completed and closed; merged to `main`)
+
+### Backend
+
+* `GET /api/v1/students` — single list/search endpoint (no separate `/students/search`)
+* Query params: `search`, `gender`, `status`, `admissionYear`, `school`, `ageMin`, `ageMax`, plus `page`/`size`/`sort` (default `admissionDate,desc`, size 20)
+* Global `search` matches name, admission number, Aadhaar, guardian, and phone
+* `ageMin`/`ageMax` translated server-side into a `date_of_birth` range (age never persisted); `400` on negative values or `ageMin > ageMax`
+* JPA Specifications (`StudentSpecifications`) for dynamic filtering; soft-deleted rows excluded by default
+* `StudentSummaryResponse` list DTO; shared `PageResponse` moved to `common/dto` (old `user/dto/PageResponse` removed)
+* Flyway `V6__add_students_search_indexes.sql`: index on `students(date_of_birth)` for the age-range filter
+* Unit tests (`StudentServiceTest`) + integration tests (`StudentSearchIntegrationTest`)
+
+### Frontend
+
+* Student list page at `/students` — AG Grid with server-side pagination, sorting, and filters
+* Filter panel: global search, gender, status, admission year, school, age range (min/max)
+* Age column sorts via `dateOfBirth` with inverted direction; server-side sort mapping per column
+* Empty states for "no students yet" vs "no matching students"; actions cell (View / Edit)
+
+### Milestone 8 QA bug fixes (issues #37–#42)
+
+* #37: duplicate error toasts on list load failure removed — the global `errorInterceptor` owns the HTTP error toast; the list page no longer shows its own
+* #39: list load failure now renders a dedicated "Unable to load students" error state with a Retry button instead of the misleading "No students yet" empty state (new `loadFailed` signal)
+* #40: non-integer age / admission-year filter values are rejected with a validation toast instead of being silently ignored (`parseOptionalInt` returns `NaN` for invalid input)
+* #41: roadmap Milestone 8 API deliverables synced — removed `/students/search`, replaced `age` with `ageMin`/`ageMax`
+* #42: `docs/06_Database_Design.md` now documents the `date_of_birth` index (Flyway V6)
+* #38: this document updated for Milestone 8
+* #43 (High): admission year / age / school filters crashed in the browser — number inputs use Angular's `NumberValueAccessor` (emits `number | null`, never strings), but the form typed them as strings and `parseOptionalInt(value: string)` threw `TypeError` on `.trim()`. Filter controls are now honestly typed `FormControl<number | null>`, parsing replaced by `toOptionalInt(number | null)` (null = no filter, `NaN` = non-integer → validation toast, preserving the #40 fix), `clearFilters()` resets number fields to `null`. Regression specs now drive the real DOM inputs (`input` events through `NumberValueAccessor`) covering QA's four scenarios; supersedes part of #40
+
+---
+
 # Technology Decisions
 
 Unchanged from Milestone 1–6. Student update specifics:
@@ -248,7 +280,7 @@ Unchanged from Milestone 1–6. Student update specifics:
 
 # Current Objective
 
-Begin Milestone 8 — Student Search (list, pagination, filters).
+Begin Milestone 9 — Student Soft Delete & Restore.
 
 ---
 
@@ -276,7 +308,7 @@ main
 
 # Pending Milestones
 
-* Milestone 8 — Student Search
+* Milestone 9 — Student Soft Delete & Restore
 * … (see roadmap)
 
 ---
@@ -291,7 +323,7 @@ None.
 
 # Next Session Goal
 
-1. Begin Milestone 8 — Student Search (list page, server-side pagination/filtering)
+1. Begin Milestone 9 — Student Soft Delete & Restore (soft delete, restore, inactive list)
 
 ---
 

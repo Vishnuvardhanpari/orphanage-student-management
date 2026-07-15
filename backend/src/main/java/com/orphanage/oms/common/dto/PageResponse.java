@@ -1,4 +1,4 @@
-package com.orphanage.oms.user.dto;
+package com.orphanage.oms.common.dto;
 
 import java.util.List;
 import org.springframework.data.domain.Page;

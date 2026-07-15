@@ -328,8 +328,7 @@ Implement enterprise search.
 
 ### APIs
 
-- GET /api/v1/students
-- GET /api/v1/students/search
+- GET /api/v1/students (single list/search endpoint; no separate `/students/search`)
 
 ### Query Parameters
 
@@ -341,7 +340,8 @@ Implement enterprise search.
 - status
 - admissionYear
 - school
-- age
+- ageMin
+- ageMax
 
 ### Business Logic
 

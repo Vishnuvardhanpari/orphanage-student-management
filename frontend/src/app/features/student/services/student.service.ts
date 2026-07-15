@@ -3,6 +3,7 @@ import {
   HttpContext,
   HttpEvent,
   HttpEventType,
+  HttpParams,
   HttpResponse,
 } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
@@ -10,12 +11,15 @@ import { Observable, filter, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { API_PATHS } from '../../../core/constants/api-paths';
 import { SKIP_ERROR_TOAST } from '../../../core/interceptors/error.interceptor';
+import { PageResponse } from '../../../shared/models/page.models';
 import {
   CreateStudentRequest,
   DocumentType,
   StudentCreatedResponse,
   StudentDetail,
   StudentDocumentMeta,
+  StudentListParams,
+  StudentSummary,
   UpdateStudentRequest,
 } from '../models/student.models';
 
@@ -38,6 +42,42 @@ export interface StudentFileDownload {
 export class StudentService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/${API_PATHS.students}`;
+
+  /**
+   * Paginated student list with optional global search, filters, and sorting.
+   */
+  list(params: StudentListParams = {}): Observable<PageResponse<StudentSummary>> {
+    let httpParams = new HttpParams();
+    if (params.search) {
+      httpParams = httpParams.set('search', params.search);
+    }
+    if (params.gender) {
+      httpParams = httpParams.set('gender', params.gender);
+    }
+    if (params.status) {
+      httpParams = httpParams.set('status', params.status);
+    }
+    if (params.admissionYear !== undefined && params.admissionYear !== null) {
+      httpParams = httpParams.set('admissionYear', String(params.admissionYear));
+    }
+    if (params.school) {
+      httpParams = httpParams.set('school', params.school);
+    }
+    if (params.ageMin !== undefined && params.ageMin !== null) {
+      httpParams = httpParams.set('ageMin', String(params.ageMin));
+    }
+    if (params.ageMax !== undefined && params.ageMax !== null) {
+      httpParams = httpParams.set('ageMax', String(params.ageMax));
+    }
+    httpParams = httpParams.set('page', String(params.page ?? 0));
+    httpParams = httpParams.set('size', String(params.size ?? 20));
+    if (params.sort) {
+      httpParams = httpParams.set('sort', params.sort);
+    }
+    return this.http.get<PageResponse<StudentSummary>>(this.baseUrl, {
+      params: httpParams,
+    });
+  }
 
   /**
    * Creates a student and reports multipart upload progress.

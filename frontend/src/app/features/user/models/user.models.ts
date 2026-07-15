@@ -44,15 +44,3 @@ export interface UserListParams {
   size?: number;
   sort?: string;
 }
-
-/** Spring Data page payload. */
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-}
