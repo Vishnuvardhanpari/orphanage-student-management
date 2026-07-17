@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 9 — Student Soft Delete & Restore (implementation complete; pending self/independent review and merge)
+Milestone 10 — Reports & PDF Export (next)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 9 — Student Soft Delete & Restore
+Milestone 10 — Reports & PDF Export
 
 ---
 
@@ -252,7 +252,7 @@ Milestone 9 — Student Soft Delete & Restore
 
 ---
 
-## Milestone 9 — Student Soft Delete & Restore (implemented on `milestone/student-soft-delete`)
+## Milestone 9 — Student Soft Delete & Restore (completed and closed; merged to `main` via PR #54)
 
 ### Backend
 
@@ -280,6 +280,7 @@ Milestone 9 — Student Soft Delete & Restore
 ### Docs
 
 * `docs/07_API_Design.md` Milestone 9 contracts expanded, including the optional soft-delete request body and `schoolName`/`standard` sort support
+* Session context: M9 closed and merged to `main`
 
 ### Milestone 9 QA bug fixes (BUG-001–007, issues #45–#51)
 
@@ -296,11 +297,16 @@ Milestone 9 — Student Soft Delete & Restore
 * BUG-UI-001 — `app-button`'s `routerLink` (`<a>`) variant rendered with no visible label. Root cause: Angular resolves content projection statically at compile time, so a component template that places `<ng-content>` directly inside more than one `@if`/`@else` branch only ever projects into one of the branches (documented upstream: angular/angular#7795, #61282, #53310) — ours projected into the `<button>` `@else` branch only. Fixed in `button.html` by hoisting the projected content into a single `<ng-template #label>` and rendering it in both branches via `<ng-container [ngTemplateOutlet]="label" />`; no change to the component's public API (inputs/outputs) or any of the 3 call sites (`student-list-page`, `student-inactive-list-page`)
 * BUG-UI-002 — `button.spec.ts` only asserted tag type/CSS class for the `routerLink` variant, never the projected label, which is why BUG-UI-001 shipped undetected. Added label-text regression coverage (`button.spec.ts`, driven through a host wrapper component so real content projection is exercised) plus header-label assertions in `student-list-page.spec.ts` and `student-inactive-list-page.spec.ts`
 
+### Milestone 9 closure
+
+* Issues #45–#53 closed
+* Merged to `main` via PR #54 (`e68e03c`)
+
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–8, plus Milestone 9:
+Unchanged from Milestone 1–9:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
@@ -311,14 +317,14 @@ Unchanged from Milestone 1–8, plus Milestone 9:
 
 # Current Objective
 
-Complete Milestone 9 review (self + independent), then merge when approved.
+Start Milestone 10 — Reports & PDF Export (see `docs/13_DEVELOPMENT_ROADMAP.md`).
 
 ---
 
 # Current Branch
 
 ```text
-milestone/student-soft-delete
+main
 ```
 
 ---
@@ -330,7 +336,7 @@ milestone/student-soft-delete
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–8 completed and merged
+* Milestone 5–9 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 
@@ -338,7 +344,6 @@ milestone/student-soft-delete
 
 # Pending Milestones
 
-* Milestone 9 — Student Soft Delete & Restore (in review)
 * Milestone 10 — Reports & PDF Export
 * … (see roadmap)
 
@@ -354,9 +359,9 @@ None.
 
 # Next Session Goal
 
-1. Self-review / independent review of Milestone 9
-2. Manual verification checklist
-3. Merge when approved
+1. Read Milestone 10 scope in `docs/13_DEVELOPMENT_ROADMAP.md` and related docs (API, UI/UX, business rules for reports)
+2. Create `milestone/reports-pdf-export` (or agreed branch name) from `main`
+3. Implement Reports & PDF Export per roadmap Definition of Done
 
 ---
 
