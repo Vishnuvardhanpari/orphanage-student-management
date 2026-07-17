@@ -222,6 +222,30 @@ class StudentSearchIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Unsupported sort property: aadhaarNumber"));
     }
 
+    // Regression for QA BUG-002: sorting by School/Standard used to 400 because
+    // these grid-sortable columns were missing from the backend sort whitelist.
+    @Test
+    void sortingBySchoolNameWorksInBothDirections() throws Exception {
+        persistStudent(b -> b.admissionNumber("ADM-S-070").firstName("Zed").schoolName("Zenith School"));
+        persistStudent(b -> b.admissionNumber("ADM-S-071").firstName("Amy").schoolName("Alpha School"));
+
+        mockMvc.perform(authorized("/api/v1/students?sort=schoolName,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].schoolName").value("Alpha School"));
+
+        mockMvc.perform(authorized("/api/v1/students?sort=schoolName,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].schoolName").value("Zenith School"));
+    }
+
+    @Test
+    void sortingByStandardIsAccepted() throws Exception {
+        persistStudent(b -> b.admissionNumber("ADM-S-072").standard("5"));
+
+        mockMvc.perform(authorized("/api/v1/students?sort=standard,asc"))
+                .andExpect(status().isOk());
+    }
+
     @Test
     void invalidAgeRangeReturns400() throws Exception {
         mockMvc.perform(authorized("/api/v1/students?ageMin=12&ageMax=8"))

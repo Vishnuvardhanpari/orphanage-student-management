@@ -1,7 +1,10 @@
 package com.orphanage.oms.student.repository;
 
 import com.orphanage.oms.student.entity.Student;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +15,35 @@ import org.springframework.data.repository.query.Param;
  */
 public interface StudentRepository
         extends JpaRepository<Student, UUID>, JpaSpecificationExecutor<Student> {
+
+    /**
+     * Load by id including soft-deleted rows (bypasses {@code @SQLRestriction}).
+     */
+    @Query(
+            value = """
+                    SELECT * FROM students
+                    WHERE id = :id
+                    """,
+            nativeQuery = true)
+    Optional<Student> findIncludingDeletedById(@Param("id") UUID id);
+
+    /**
+     * Paginated soft-deleted students (bypasses {@code @SQLRestriction}).
+     *
+     * <p>Callers must pass {@link Pageable} sort properties using SQL column names
+     * (e.g. {@code deleted_date}), not entity field names.
+     */
+    @Query(
+            value = """
+                    SELECT * FROM students
+                    WHERE deleted = true
+                    """,
+            countQuery = """
+                    SELECT COUNT(1) FROM students
+                    WHERE deleted = true
+                    """,
+            nativeQuery = true)
+    Page<Student> findAllDeleted(Pageable pageable);
 
     /**
      * Uniqueness check including soft-deleted rows (bypasses {@code @SQLRestriction}).

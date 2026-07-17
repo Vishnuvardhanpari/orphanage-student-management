@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -23,6 +24,7 @@ describe('StudentListPage', () => {
     schoolName: 'Green Valley School',
     standard: '5',
     admissionDate: '2024-06-01',
+    deletedDate: null,
   };
 
   function pageOf(
@@ -46,15 +48,17 @@ describe('StudentListPage', () => {
   let router: Router;
   let studentService: jasmine.SpyObj<StudentService>;
   let notifications: jasmine.SpyObj<NotificationService>;
+  let dialog: jasmine.SpyObj<Dialog>;
 
   async function setup(
     response: PageResponse<StudentSummary> | 'error' = pageOf([summary]),
   ): Promise<void> {
-    studentService = jasmine.createSpyObj('StudentService', ['list']);
+    studentService = jasmine.createSpyObj('StudentService', ['list', 'softDelete']);
     notifications = jasmine.createSpyObj('NotificationService', [
       'success',
       'error',
     ]);
+    dialog = jasmine.createSpyObj('Dialog', ['open']);
     if (response === 'error') {
       studentService.list.and.returnValue(
         throwError(() => ({ error: { message: 'Boom' } })),
@@ -62,6 +66,7 @@ describe('StudentListPage', () => {
     } else {
       studentService.list.and.returnValue(of(response));
     }
+    studentService.softDelete.and.returnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [StudentListPage],
@@ -69,6 +74,7 @@ describe('StudentListPage', () => {
         provideRouter([]),
         { provide: StudentService, useValue: studentService },
         { provide: NotificationService, useValue: notifications },
+        { provide: Dialog, useValue: dialog },
       ],
     }).compileComponents();
 
@@ -255,12 +261,23 @@ describe('StudentListPage', () => {
     );
   });
 
+  // Regression for QA BUG-UI-001: the header's navigation buttons render via
+  // app-button's routerLink (<a>) variant, which previously lost its
+  // projected label to an Angular content-projection limitation.
+  it('renders visible labels for the header navigation buttons', async () => {
+    await setup();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Archived students');
+    expect(text).toContain('Add student');
+  });
+
   it('navigates to view and edit from grid actions', async () => {
     await setup();
     const navigateSpy = spyOn(router, 'navigateByUrl').and.resolveTo(true);
 
     page.gridContext.onView(summary);
-    page.gridContext.onEdit(summary);
+    page.gridContext.onEdit!(summary);
 
     expect(navigateSpy).toHaveBeenCalledWith(`/students/${summary.id}`);
     expect(navigateSpy).toHaveBeenCalledWith(`/students/${summary.id}/edit`);
@@ -313,6 +330,70 @@ describe('StudentListPage', () => {
 
     page.prevPage();
     expect(page.page()).toBe(0);
+  });
+
+  // Regression suite for QA BUG-005/BUG-006: archiving now opens a dedicated
+  // dialog that can optionally capture exit details, and this flow lacked
+  // any test coverage before this pass.
+  describe('archiveStudent', () => {
+    it('opens the archive dialog with the student and admission details', async () => {
+      await setup();
+      dialog.open.and.returnValue({ closed: of(null) } as never);
+
+      await page.archiveStudent(summary);
+
+      expect(dialog.open).toHaveBeenCalledWith(
+        jasmine.anything(),
+        jasmine.objectContaining({
+          data: {
+            studentName: 'Anita Sharma',
+            admissionNumber: summary.admissionNumber,
+            admissionDate: summary.admissionDate,
+          },
+        }),
+      );
+    });
+
+    it('archives without exit details and reloads the list when confirmed blank', async () => {
+      await setup();
+      studentService.list.calls.reset();
+      dialog.open.and.returnValue({
+        closed: of({ exitDate: null, exitReason: null, exitRemarks: null }),
+      } as never);
+
+      await page.archiveStudent(summary);
+
+      expect(studentService.softDelete).toHaveBeenCalledWith(summary.id, {
+        exitDate: null,
+        exitReason: null,
+        exitRemarks: null,
+      });
+      expect(notifications.success).toHaveBeenCalledWith('Student archived.');
+      expect(studentService.list).toHaveBeenCalled();
+    });
+
+    it('archives with the provided exit details', async () => {
+      await setup();
+      const exitDetails = {
+        exitDate: '2026-01-10',
+        exitReason: 'Family relocated',
+        exitRemarks: null,
+      };
+      dialog.open.and.returnValue({ closed: of(exitDetails) } as never);
+
+      await page.archiveStudent(summary);
+
+      expect(studentService.softDelete).toHaveBeenCalledWith(summary.id, exitDetails);
+    });
+
+    it('does not archive when the dialog is cancelled', async () => {
+      await setup();
+      dialog.open.and.returnValue({ closed: of(null) } as never);
+
+      await page.archiveStudent(summary);
+
+      expect(studentService.softDelete).not.toHaveBeenCalled();
+    });
   });
 });
 

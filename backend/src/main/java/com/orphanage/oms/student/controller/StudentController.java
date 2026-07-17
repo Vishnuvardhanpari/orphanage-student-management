@@ -4,6 +4,7 @@ import com.orphanage.oms.common.dto.PageResponse;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
+import com.orphanage.oms.student.dto.SoftDeleteStudentRequest;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
 import com.orphanage.oms.student.dto.StudentSummaryResponse;
 import com.orphanage.oms.student.dto.StoredFilePayload;
@@ -30,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -42,7 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Student registration, profile, and update endpoints.
+ * Student registration, profile, update, soft-delete, and restore endpoints.
  */
 @RestController
 @RequestMapping("/api/v1/students")
@@ -73,6 +75,14 @@ public class StudentController {
                 search, gender, status, admissionYear, school, ageMin, ageMax, pageable));
     }
 
+    @GetMapping("/inactive")
+    @Operation(summary = "List soft-deleted (archived) students")
+    public PageResponse<StudentSummaryResponse> listInactive(
+            @PageableDefault(size = 20, sort = "deletedDate", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return PageResponse.from(studentService.listInactive(pageable));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a student with optional photo and supporting documents")
@@ -85,7 +95,7 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get student profile by id")
+    @Operation(summary = "Get student profile by id (includes archived)")
     public StudentDetailResponse getById(@PathVariable UUID id) {
         return studentService.getById(id);
     }
@@ -95,6 +105,22 @@ public class StudentController {
     public StudentDetailResponse update(
             @PathVariable UUID id, @Valid @RequestBody UpdateStudentRequest request) {
         return studentService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Soft-delete (archive) a student, optionally recording exit details")
+    public void softDelete(
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) SoftDeleteStudentRequest exitDetails) {
+        studentService.softDelete(id, exitDetails);
+    }
+
+    @PatchMapping("/{id}/restore")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Restore a soft-deleted student (ADMIN only)")
+    public StudentDetailResponse restore(@PathVariable UUID id) {
+        return studentService.restore(id);
     }
 
     @PutMapping(value = "/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

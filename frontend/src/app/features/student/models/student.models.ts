@@ -60,6 +60,17 @@ export interface CreateStudentRequest {
 /** Editable fields for PUT /students/{id} (admission number is immutable). */
 export type UpdateStudentRequest = Omit<CreateStudentRequest, 'admissionNumber'>;
 
+/**
+ * Optional exit details recorded when archiving a student (Milestone 9 QA —
+ * BUG-005). Every field is optional; omitting a field leaves it unchanged on
+ * the backend.
+ */
+export interface SoftDeleteExitDetails {
+  exitDate?: string | null;
+  exitReason?: string | null;
+  exitRemarks?: string | null;
+}
+
 export interface StudentCreatedResponse {
   id: string;
   admissionNumber: string;
@@ -113,6 +124,8 @@ export interface StudentSummary {
   schoolName: string | null;
   standard: string | null;
   admissionDate: string;
+  /** Only populated for archived rows from GET /students/inactive (Milestone 9 QA — BUG-007). */
+  deletedDate: string | null;
 }
 
 /** Query parameters for GET /api/v1/students. All filters are optional. */

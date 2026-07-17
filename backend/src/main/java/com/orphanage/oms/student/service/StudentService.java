@@ -4,6 +4,7 @@ import com.orphanage.oms.exception.ApiException;
 import com.orphanage.oms.security.UserPrincipal;
 import com.orphanage.oms.storage.StorageService;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
+import com.orphanage.oms.student.dto.SoftDeleteStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
@@ -26,11 +27,13 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Student registration, profile read, and update operations.
+ * Student registration, profile read, update, soft-delete, and restore operations.
  */
 @Service
 public class StudentService {
@@ -57,7 +60,36 @@ public class StudentService {
             "dateOfBirth",
             "admissionDate",
             "status",
-            "createdDate");
+            "createdDate",
+            "schoolName",
+            "standard");
+
+    private static final Set<String> ALLOWED_INACTIVE_SORT_PROPERTIES = Set.of(
+            "admissionNumber",
+            "firstName",
+            "lastName",
+            "gender",
+            "dateOfBirth",
+            "admissionDate",
+            "status",
+            "createdDate",
+            "deletedDate",
+            "schoolName",
+            "standard");
+
+    /** Maps API sort properties to SQL column names for native inactive queries. */
+    private static final Map<String, String> SORT_PROPERTY_TO_COLUMN = Map.ofEntries(
+            Map.entry("admissionNumber", "admission_number"),
+            Map.entry("firstName", "first_name"),
+            Map.entry("lastName", "last_name"),
+            Map.entry("gender", "gender"),
+            Map.entry("dateOfBirth", "date_of_birth"),
+            Map.entry("admissionDate", "admission_date"),
+            Map.entry("status", "status"),
+            Map.entry("createdDate", "created_date"),
+            Map.entry("deletedDate", "deleted_date"),
+            Map.entry("schoolName", "school_name"),
+            Map.entry("standard", "standard"));
 
     private final StudentRepository studentRepository;
     private final StudentDocumentRepository studentDocumentRepository;
@@ -127,15 +159,39 @@ public class StudentService {
                 .map(studentMapper::toSummaryResponse);
     }
 
+    /**
+     * Paginated soft-deleted (archived) students. Bypasses {@code @SQLRestriction}.
+     */
+    @Transactional(readOnly = true)
+    public Page<StudentSummaryResponse> listInactive(Pageable pageable) {
+        validateSort(pageable.getSort(), ALLOWED_INACTIVE_SORT_PROPERTIES);
+        Pageable nativePageable = toNativeSortPageable(pageable);
+        return studentRepository.findAllDeleted(nativePageable).map(studentMapper::toSummaryResponse);
+    }
+
     private static void validateSort(Sort sort) {
+        validateSort(sort, ALLOWED_SORT_PROPERTIES);
+    }
+
+    private static void validateSort(Sort sort, Set<String> allowed) {
         for (Sort.Order order : sort) {
-            if (!ALLOWED_SORT_PROPERTIES.contains(order.getProperty())) {
+            if (!allowed.contains(order.getProperty())) {
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,
                         "Validation Error",
                         "Unsupported sort property: " + order.getProperty());
             }
         }
+    }
+
+    private static Pageable toNativeSortPageable(Pageable pageable) {
+        Sort nativeSort = Sort.by(pageable.getSort().stream()
+                .map(order -> {
+                    String column = SORT_PROPERTY_TO_COLUMN.get(order.getProperty());
+                    return order.isAscending() ? Sort.Order.asc(column) : Sort.Order.desc(column);
+                })
+                .toList());
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), nativeSort);
     }
 
     private static void validateAgeRange(Integer ageMin, Integer ageMax) {
@@ -155,14 +211,14 @@ public class StudentService {
 
     @Transactional(readOnly = true)
     public StudentDetailResponse getById(UUID id) {
-        Student student = requireStudent(id);
+        Student student = requireStudentIncludingDeleted(id);
         log.info("Student profile viewed id={}", id);
         return studentMapper.toDetailResponse(student);
     }
 
     @Transactional(readOnly = true)
     public List<StudentDocumentResponse> listDocuments(UUID studentId) {
-        requireStudent(studentId);
+        requireStudentIncludingDeleted(studentId);
         return studentDocumentRepository.findByStudent_IdOrderByUploadedDateDesc(studentId).stream()
                 .map(studentMapper::toDocumentResponse)
                 .toList();
@@ -170,7 +226,7 @@ public class StudentService {
 
     @Transactional(readOnly = true)
     public StoredFilePayload downloadDocument(UUID studentId, UUID documentId) {
-        requireStudent(studentId);
+        requireStudentIncludingDeleted(studentId);
         StudentDocument document = studentDocumentRepository
                 .findByIdAndStudent_Id(documentId, studentId)
                 .orElseThrow(() -> new ApiException(
@@ -187,7 +243,7 @@ public class StudentService {
 
     @Transactional(readOnly = true)
     public StoredFilePayload loadProfilePhoto(UUID studentId) {
-        Student student = requireStudent(studentId);
+        Student student = requireStudentIncludingDeleted(studentId);
         String photoPath = student.getProfilePhotoPath();
         if (photoPath == null || photoPath.isBlank()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Profile photo not found.");
@@ -342,7 +398,7 @@ public class StudentService {
 
     @Transactional
     public StudentDetailResponse update(UUID id, UpdateStudentRequest request) {
-        Student student = requireStudent(id);
+        Student student = requireActiveStudent(id);
 
         if (request.dateOfBirth().isAfter(request.admissionDate())) {
             throw new ApiException(
@@ -397,7 +453,7 @@ public class StudentService {
         }
         fileValidator.validatePhoto(photo);
 
-        Student student = requireStudent(id);
+        Student student = requireActiveStudent(id);
         UUID actorId = currentUserId();
         String previousPath = student.getProfilePhotoPath();
         List<String> storedPaths = new ArrayList<>();
@@ -433,7 +489,7 @@ public class StudentService {
     @Transactional
     public List<StudentDocumentResponse> addDocuments(
             UUID studentId, List<MultipartFile> documents, List<String> documentTypes) {
-        Student student = requireStudent(studentId);
+        Student student = requireActiveStudent(studentId);
         List<MultipartFile> docs = documents == null ? List.of() : documents.stream()
                 .filter(file -> file != null && !file.isEmpty())
                 .toList();
@@ -525,7 +581,7 @@ public class StudentService {
         }
         fileValidator.validateDocument(document);
 
-        Student student = requireStudent(studentId);
+        Student student = requireActiveStudent(studentId);
         StudentDocument existing = studentDocumentRepository
                 .findByIdAndStudent_Id(documentId, studentId)
                 .orElseThrow(() -> new ApiException(
@@ -597,7 +653,7 @@ public class StudentService {
 
     @Transactional
     public void deletePhoto(UUID id) {
-        Student student = requireStudent(id);
+        Student student = requireActiveStudent(id);
         String photoPath = student.getProfilePhotoPath();
         if (photoPath == null || photoPath.isBlank()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Profile photo not found.");
@@ -619,7 +675,7 @@ public class StudentService {
 
     @Transactional
     public void deleteDocument(UUID studentId, UUID documentId) {
-        Student student = requireStudent(studentId);
+        Student student = requireActiveStudent(studentId);
         StudentDocument document = studentDocumentRepository
                 .findByIdAndStudent_Id(documentId, studentId)
                 .orElseThrow(() -> new ApiException(
@@ -684,6 +740,69 @@ public class StudentService {
         }
     }
 
+    /**
+     * Soft delete. Sets the archive flags and, when provided, records optional
+     * exit details (Milestone 9 QA — BUG-005). Does not cascade to documents/storage.
+     */
+    @Transactional
+    public void softDelete(UUID id, SoftDeleteStudentRequest exitDetails) {
+        Student student = requireActiveStudent(id);
+
+        LocalDate exitDate = exitDetails != null ? exitDetails.exitDate() : null;
+        if (exitDate != null && exitDate.isBefore(student.getAdmissionDate())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation Error",
+                    "Exit date must be on or after the admission date.");
+        }
+
+        UUID actorId = currentUserId();
+        Instant now = Instant.now();
+        student.setDeleted(true);
+        student.setDeletedBy(actorId);
+        student.setDeletedDate(now);
+        student.setStatus(StudentStatus.INACTIVE);
+        if (exitDate != null) {
+            student.setExitDate(exitDate);
+        }
+        if (exitDetails != null) {
+            String exitReason = blankToNull(exitDetails.exitReason());
+            if (exitReason != null) {
+                student.setExitReason(exitReason);
+            }
+            String exitRemarks = blankToNull(exitDetails.exitRemarks());
+            if (exitRemarks != null) {
+                student.setExitRemarks(exitRemarks);
+            }
+        }
+        student.setUpdatedBy(actorId);
+        studentRepository.save(student);
+        log.info("Student deleted id={} by={} exitDateRecorded={}", id, actorId, exitDate != null);
+    }
+
+    /**
+     * Restores a soft-deleted student. Does not modify exit fields.
+     */
+    @Transactional
+    public StudentDetailResponse restore(UUID id) {
+        Student student = requireStudentIncludingDeleted(id);
+        if (!student.isDeleted()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "Student is not archived and cannot be restored.");
+        }
+        UUID actorId = currentUserId();
+        student.setDeleted(false);
+        student.setDeletedBy(null);
+        student.setDeletedDate(null);
+        student.setStatus(StudentStatus.ACTIVE);
+        student.setUpdatedBy(actorId);
+        Student saved = studentRepository.save(student);
+        log.info("Student restored id={} by={}", id, actorId);
+        return studentMapper.toDetailResponse(saved);
+    }
+
     private UUID currentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
@@ -692,9 +811,17 @@ public class StudentService {
         return principal.getId();
     }
 
-    private Student requireStudent(UUID id) {
+    /** Active (non-deleted) student only — used for mutations and soft delete. */
+    private Student requireActiveStudent(UUID id) {
         return studentRepository
                 .findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Student not found."));
+    }
+
+    /** Includes soft-deleted rows — used for archived profile reads and restore. */
+    private Student requireStudentIncludingDeleted(UUID id) {
+        return studentRepository
+                .findIncludingDeletedById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Student not found."));
     }
 

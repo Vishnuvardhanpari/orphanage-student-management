@@ -124,7 +124,7 @@ Public auth endpoints (no JWT required): `/auth/login`, `/auth/google`, `/auth/r
 
 Base path: `/api/v1/students`
 
-Authorization: JWT required. `ADMIN` or `STAFF` may register students, view and update profiles, manage photos/documents, list documents, and download files.
+Authorization: JWT required. `ADMIN` or `STAFF` may register students, view and update profiles (including archived reads), manage photos/documents, list documents, download files, soft-delete students, and list inactive students. Only `ADMIN` may restore soft-deleted students.
 
 ## Register student (Milestone 5)
 
@@ -177,7 +177,7 @@ Not accepted: `status` (always `ACTIVE`), exit fields, soft-delete fields
 
 Does **not** return storage paths (`profilePhotoPath`).
 
-Soft-deleted or unknown students → `404`.
+Returns active **and** soft-deleted (archived) students so ADMIN and STAFF can open archived profiles. Unknown id → `404`.
 
 ### Errors
 
@@ -377,7 +377,7 @@ Paginated student list with optional global search, combinable filters, and sort
 
 * `page` — zero-based page index (default `0`)
 * `size` — page size (default `20`)
-* `sort` — `property,direction` (default `admissionDate,desc`). Allowed properties: `admissionNumber`, `firstName`, `lastName`, `gender`, `dateOfBirth`, `admissionDate`, `status`, `createdDate`. Any other property → `400`.
+* `sort` — `property,direction` (default `admissionDate,desc`). Allowed properties: `admissionNumber`, `firstName`, `lastName`, `gender`, `dateOfBirth`, `admissionDate`, `status`, `createdDate`, `schoolName`, `standard`. Any other property → `400`.
 * `search` — case-insensitive contains match across first name, last name, full name, admission number, Aadhaar number, guardian name, and phone number
 * `gender` — `MALE` | `FEMALE` | `OTHER`
 * `status` — `ACTIVE` | `INACTIVE`
@@ -474,14 +474,115 @@ PUT
 
 *(See Replace supporting document above.)*
 
+## Soft delete student (Milestone 9; exit details added in Milestone 9 QA — BUG-005)
+
+`DELETE /students/{id}`
+
+`Content-Type: application/json` (optional — the request body itself is optional)
+
+ADMIN and STAFF. Sets the soft-delete flags and, when the caller provides them, records the student's exit details.
+
+### SoftDeleteStudentRequest (optional body; every field optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `exitDate` | date | Must be on/before today and on/after the student's `admissionDate` |
+| `exitReason` | string | Free text |
+| `exitRemarks` | string | Free text |
+
+Omitting the body (or any individual field) preserves the original flags-only behavior for that field — existing exit fields are left unchanged unless explicitly provided.
+
+Sets:
+
+* `deleted = true`
+* `deletedBy` — current user id
+* `deletedDate` — server timestamp
+* `status = INACTIVE`
+* `exitDate` / `exitReason` / `exitRemarks` — only when provided in the request body
+
+Does not cascade soft-delete of documents or remove storage objects.
+
+### Response `204 No Content`
+
+### Errors
+
+* `400` — `exitDate` in the future or before `admissionDate`
+* `401` / `403` — as above
+* `404` — student not found or already soft-deleted
+
+---
+
+## Restore student (Milestone 9)
+
+`PATCH /students/{id}/restore`
+
+**ADMIN only.** Clears soft-delete flags and reactivates the student. Does **not** modify exit fields.
+
+Sets:
+
+* `deleted = false`
+* `deletedBy = null`
+* `deletedDate = null`
+* `status = ACTIVE`
+
+### Response `200 OK`
+
+`StudentDetailResponse` (same shape as Get student profile).
+
+### Errors
+
+* `401` — unauthenticated
+* `403` — authenticated but not ADMIN (STAFF receive 403)
+* `404` — student not found
+* `409` — student is not soft-deleted (already active)
+
+---
+
+## List inactive / archived students (Milestone 9)
+
+`GET /students/inactive`
+
+Paginated list of soft-deleted students (`deleted = true`). ADMIN and STAFF. Bypasses the default soft-delete filter used by `GET /students`.
+
+### Query parameters
+
+* `page` — zero-based page index (default `0`)
+* `size` — page size (default `20`)
+* `sort` — `property,direction` (default `deletedDate,desc`). Allowed properties: same as list/search, plus `deletedDate`. Any other property → `400`.
+
+Response also includes `deletedDate` (ISO-8601 timestamp) per row, only ever populated here (Milestone 9 QA — BUG-007).
+
+### Response `200`
+
+Same `PageResponse<StudentSummaryResponse>` shape as Milestone 8 list/search. Rows have `status = INACTIVE`.
+
+### Errors
+
+* `400` — unsupported sort property
+* `401` / `403` — as above
+
+---
+
+## Archived profile reads (Milestone 9)
+
+For soft-deleted students, the following remain available to ADMIN and STAFF (used by the archived profile UI):
+
+* `GET /students/{id}` — profile
+* `GET /students/{id}/photo` — profile photo
+* `GET /students/{id}/documents` — active documents
+* `GET /students/{id}/documents/{documentId}/download` — download
+
+Mutations (`PUT` fields/photo/docs, `POST` documents, `DELETE` photo/document) still require an **active** (non-deleted) student → soft-deleted → `404`.
+
+---
+
 DELETE
 
 ```
 /students/{id}
 ```
 
-Soft Delete
-*(Milestone 9)*
+*(See Soft delete student above.)*
 
 PATCH
 
@@ -489,8 +590,15 @@ PATCH
 /students/{id}/restore
 ```
 
-Admin Only
-*(Milestone 9)*
+*(See Restore student above.)*
+
+GET
+
+```
+/students/inactive
+```
+
+*(See List inactive / archived students above.)*
 
 ---
 

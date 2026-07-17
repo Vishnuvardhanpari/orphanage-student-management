@@ -1,16 +1,50 @@
-<button
-  [attr.type]="type()"
-  [disabled]="disabled()"
-  class="oms-btn"
-  [class.oms-btn--primary]="variant() === 'primary'"
-  [class.oms-btn--secondary]="variant() === 'secondary'"
-  [class.oms-btn--ghost]="variant() === 'ghost'"
-  [class.oms-btn--danger]="variant() === 'danger'"
-  [class.oms-btn--sm]="size() === 'sm'"
-  [class.oms-btn--md]="size() === 'md'"
-  [class.oms-btn--lg]="size() === 'lg'"
-  [class.oms-btn--full]="fullWidth()"
-  (click)="onClick($event)"
->
+<!--
+  The projected label must be captured exactly once, in an inert
+  ng-template, and re-rendered via ngTemplateOutlet in whichever branch is
+  active below. Angular's content projection is resolved statically at
+  compile time, so an <ng-content> placed directly inside more than one
+  @if/@else branch only ever receives the projected content in one of the
+  branches — the other renders empty (Milestone 9 QA round 2 — BUG-UI-001;
+  see angular/angular#7795, #61282, #53310).
+-->
+<ng-template #label>
   <ng-content />
-</button>
+</ng-template>
+
+@if (routerLink() !== null) {
+  <a
+    [routerLink]="routerLink()"
+    class="oms-btn"
+    [class.oms-btn--primary]="variant() === 'primary'"
+    [class.oms-btn--secondary]="variant() === 'secondary'"
+    [class.oms-btn--ghost]="variant() === 'ghost'"
+    [class.oms-btn--danger]="variant() === 'danger'"
+    [class.oms-btn--sm]="size() === 'sm'"
+    [class.oms-btn--md]="size() === 'md'"
+    [class.oms-btn--lg]="size() === 'lg'"
+    [class.oms-btn--full]="fullWidth()"
+    [class.oms-btn--disabled]="disabled()"
+    [attr.aria-disabled]="disabled() ? true : null"
+    [attr.tabindex]="disabled() ? -1 : null"
+    (click)="onClick($event)"
+  >
+    <ng-container [ngTemplateOutlet]="label" />
+  </a>
+} @else {
+  <button
+    [attr.type]="type()"
+    [disabled]="disabled()"
+    class="oms-btn"
+    [class.oms-btn--primary]="variant() === 'primary'"
+    [class.oms-btn--secondary]="variant() === 'secondary'"
+    [class.oms-btn--ghost]="variant() === 'ghost'"
+    [class.oms-btn--danger]="variant() === 'danger'"
+    [class.oms-btn--sm]="size() === 'sm'"
+    [class.oms-btn--md]="size() === 'md'"
+    [class.oms-btn--lg]="size() === 'lg'"
+    [class.oms-btn--full]="fullWidth()"
+    (click)="onClick($event)"
+  >
+    <ng-container [ngTemplateOutlet]="label" />
+  </button>
+}

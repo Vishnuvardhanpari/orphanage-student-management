@@ -13,6 +13,7 @@ export const APP_PATHS = {
   login: `/${APP_ROUTES.auth}/${APP_ROUTES.login}`,
   dashboard: `/${APP_ROUTES.dashboard}`,
   students: `/${APP_ROUTES.students}`,
+  studentsInactive: `/${APP_ROUTES.students}/inactive`,
   reports: `/${APP_ROUTES.reports}`,
   users: `/${APP_ROUTES.users}`,
 } as const;

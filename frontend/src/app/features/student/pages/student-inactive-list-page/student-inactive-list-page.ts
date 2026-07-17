@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -5,9 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Dialog } from '@angular/cdk/dialog';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -19,16 +18,16 @@ import {
 } from 'ag-grid-community';
 import { catchError, finalize, firstValueFrom, of } from 'rxjs';
 import { APP_PATHS } from '../../../../core/constants/routes';
+import { AuthService } from '../../../auth/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Button } from '../../../../shared/components/button/button';
+import {
+  ConfirmDialog,
+  ConfirmDialogData,
+} from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { emptyPage } from '../../../../shared/models/page.models';
-import {
-  ArchiveStudentDialog,
-  ArchiveStudentDialogData,
-  ArchiveStudentResult,
-} from '../../components/archive-student-dialog/archive-student-dialog';
 import {
   StudentActionsCellContext,
   StudentActionsCellRenderer,
@@ -36,22 +35,18 @@ import {
 import {
   GENDER_LABELS,
   Gender,
-  StudentListParams,
   StudentStatus,
   StudentSummary,
 } from '../../models/student.models';
+import {
+  ageFromDateOfBirth,
+} from '../student-list-page/student-list-page';
 import { StudentService } from '../../services/student.service';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-/** No-op comparator so AG Grid does not reorder the current page client-side. */
 const serverSortComparator = (): number => 0;
 
-/**
- * Maps grid column ids to backend sort properties. The display-only Age column
- * sorts by dateOfBirth with the direction inverted (older students first when
- * sorting age descending).
- */
 const SORT_FIELD_MAP: Record<string, string> = {
   admissionNumber: 'admissionNumber',
   name: 'firstName',
@@ -61,46 +56,29 @@ const SORT_FIELD_MAP: Record<string, string> = {
   standard: 'standard',
   admissionDate: 'admissionDate',
   status: 'status',
+  deletedDate: 'deletedDate',
 };
 
-const DEFAULT_SORT = 'admissionDate,desc';
-
-/** Whole years between date of birth and today. */
-export function ageFromDateOfBirth(dateOfBirth: string, today = new Date()): number {
-  const dob = new Date(dateOfBirth);
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDiff = today.getMonth() - dob.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-    age -= 1;
-  }
-  return age;
-}
+const DEFAULT_SORT = 'deletedDate,desc';
 
 @Component({
-  selector: 'app-student-list-page',
+  selector: 'app-student-inactive-list-page',
   standalone: true,
-  imports: [
-    PageHeader,
-    EmptyState,
-    Button,
-    AgGridAngular,
-    ReactiveFormsModule,
-  ],
-  templateUrl: './student-list-page.html',
-  styleUrl: './student-list-page.scss',
+  imports: [PageHeader, EmptyState, Button, AgGridAngular],
+  templateUrl: './student-inactive-list-page.html',
+  styleUrl: './student-inactive-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StudentListPage implements OnInit {
+export class StudentInactiveListPage implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly notifications = inject(NotificationService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(Dialog);
 
   private gridApi?: GridApi<StudentSummary>;
 
   readonly loading = signal(false);
-  /** True when the last list request failed; drives the error state + Retry. */
   readonly loadFailed = signal(false);
   readonly students = signal<StudentSummary[]>([]);
   readonly totalElements = signal(0);
@@ -108,34 +86,17 @@ export class StudentListPage implements OnInit {
   readonly page = signal(0);
   readonly pageSize = signal(20);
   readonly sort = signal(DEFAULT_SORT);
-  /** True when the current result set was produced with any filter applied. */
-  readonly filtersActive = signal(false);
   readonly paths = APP_PATHS;
 
-  /**
-   * Number inputs use Angular's NumberValueAccessor, which emits
-   * `number | null` (never strings), so those controls are typed accordingly.
-   */
-  readonly filterForm = this.fb.group({
-    search: this.fb.nonNullable.control(''),
-    gender: this.fb.nonNullable.control(''),
-    admissionYear: this.fb.control<number | null>(null),
-    school: this.fb.nonNullable.control(''),
-    ageMin: this.fb.control<number | null>(null),
-    ageMax: this.fb.control<number | null>(null),
-  });
-
   readonly gridContext: StudentActionsCellContext = {
-    showEdit: true,
-    showArchive: true,
+    showEdit: false,
+    showArchive: false,
+    showRestore: this.authService.isAdmin(),
     onView: (student) => {
-      void this.router.navigateByUrl(`${APP_PATHS.students}/${student.id}`);
+      void this.router.navigateByUrl(`${APP_PATHS.studentsInactive}/${student.id}`);
     },
-    onEdit: (student) => {
-      void this.router.navigateByUrl(`${APP_PATHS.students}/${student.id}/edit`);
-    },
-    onArchive: (student) => {
-      void this.archiveStudent(student);
+    onRestore: (student) => {
+      void this.restoreStudent(student);
     },
   };
 
@@ -182,14 +143,6 @@ export class StudentListPage implements OnInit {
       comparator: serverSortComparator,
     },
     {
-      colId: 'standard',
-      field: 'standard',
-      headerName: 'Standard',
-      width: 110,
-      valueFormatter: (p) => p.value ?? '—',
-      comparator: serverSortComparator,
-    },
-    {
       colId: 'admissionDate',
       field: 'admissionDate',
       headerName: 'Admitted',
@@ -207,18 +160,23 @@ export class StudentListPage implements OnInit {
         if (!p.value) {
           return '';
         }
-        const active = p.value === StudentStatus.Active;
-        const cls = active
-          ? 'student-status-badge student-status-badge--active'
-          : 'student-status-badge student-status-badge--inactive';
-        return `<span class="${cls}">${active ? 'Active' : 'Inactive'}</span>`;
+        return `<span class="student-status-badge student-status-badge--inactive">Inactive</span>`;
       },
+      comparator: serverSortComparator,
+    },
+    {
+      colId: 'deletedDate',
+      field: 'deletedDate',
+      headerName: 'Deleted on',
+      width: 160,
+      valueFormatter: (p) =>
+        p.value ? new Date(p.value).toLocaleString() : '—',
       comparator: serverSortComparator,
     },
     {
       colId: 'actions',
       headerName: 'Actions',
-      width: 210,
+      width: 180,
       sortable: false,
       filter: false,
       cellRenderer: StudentActionsCellRenderer,
@@ -245,7 +203,6 @@ export class StudentListPage implements OnInit {
     if (sorted?.colId && sorted.sort && SORT_FIELD_MAP[sorted.colId]) {
       let direction: 'asc' | 'desc' = sorted.sort;
       if (sorted.colId === 'age') {
-        // Age ascending means youngest first, i.e. latest date of birth first.
         direction = direction === 'asc' ? 'desc' : 'asc';
       }
       nextSort = `${SORT_FIELD_MAP[sorted.colId]},${direction}`;
@@ -254,27 +211,6 @@ export class StudentListPage implements OnInit {
       return;
     }
     this.sort.set(nextSort);
-    this.page.set(0);
-    this.loadStudents();
-  }
-
-  applyFilters(): void {
-    if (this.buildFilterParams() === null) {
-      return;
-    }
-    this.page.set(0);
-    this.loadStudents();
-  }
-
-  clearFilters(): void {
-    this.filterForm.reset({
-      search: '',
-      gender: '',
-      admissionYear: null,
-      school: '',
-      ageMin: null,
-      ageMax: null,
-    });
     this.page.set(0);
     this.loadStudents();
   }
@@ -298,25 +234,15 @@ export class StudentListPage implements OnInit {
   }
 
   loadStudents(): void {
-    const filters = this.buildFilterParams();
-    if (filters === null) {
-      return;
-    }
-
     this.loading.set(true);
     this.loadFailed.set(false);
-    this.filtersActive.set(Object.keys(filters).length > 0);
-
     this.studentService
-      .list({
-        ...filters,
+      .listInactive({
         page: this.page(),
         size: this.pageSize(),
         sort: this.sort(),
       })
       .pipe(
-        // The global errorInterceptor owns the failure toast; here we only
-        // recover with an empty page and flag the error state for the UI.
         catchError(() => {
           this.loadFailed.set(true);
           return of(emptyPage<StudentSummary>(this.pageSize()));
@@ -331,91 +257,24 @@ export class StudentListPage implements OnInit {
       });
   }
 
-  async archiveStudent(student: StudentSummary): Promise<void> {
+  async restoreStudent(student: StudentSummary): Promise<void> {
     const name = [student.firstName, student.lastName].filter(Boolean).join(' ');
-    const ref = this.dialog.open<ArchiveStudentResult | null, ArchiveStudentDialogData>(
-      ArchiveStudentDialog,
-      {
-        data: {
-          studentName: name,
-          admissionNumber: student.admissionNumber,
-          admissionDate: student.admissionDate,
-        },
+    const ref = this.dialog.open<boolean, ConfirmDialogData>(ConfirmDialog, {
+      data: {
+        title: 'Restore student',
+        message: `Restore ${name} (${student.admissionNumber}) to the active student list?`,
+        confirmLabel: 'Restore',
       },
-    );
-    const result = await firstValueFrom(ref.closed);
-    if (!result) {
+    });
+    const confirmed = await firstValueFrom(ref.closed);
+    if (!confirmed) {
       return;
     }
-    this.studentService.softDelete(student.id, result).subscribe({
+    this.studentService.restore(student.id).subscribe({
       next: () => {
-        this.notifications.success('Student archived.');
+        this.notifications.success('Student restored.');
         this.loadStudents();
       },
     });
   }
-
-  /**
-   * Reads the filter form into request params, or returns null (with a toast)
-   * when the admission year or age filters are invalid.
-   */
-  private buildFilterParams(): StudentListParams | null {
-    const raw = this.filterForm.getRawValue();
-    const admissionYear = toOptionalInt(raw.admissionYear);
-    const ageMin = toOptionalInt(raw.ageMin);
-    const ageMax = toOptionalInt(raw.ageMax);
-
-    if (Number.isNaN(admissionYear)) {
-      this.notifications.error('Admission year must be a whole number.');
-      return null;
-    }
-    if (Number.isNaN(ageMin) || Number.isNaN(ageMax)) {
-      this.notifications.error('Age filters must be whole numbers.');
-      return null;
-    }
-    if ((ageMin !== null && ageMin < 0) || (ageMax !== null && ageMax < 0)) {
-      this.notifications.error('Age filters must not be negative.');
-      return null;
-    }
-    if (ageMin !== null && ageMax !== null && ageMin > ageMax) {
-      this.notifications.error('Minimum age must not exceed maximum age.');
-      return null;
-    }
-
-    const params: StudentListParams = {};
-    const search = raw.search.trim();
-    if (search) {
-      params.search = search;
-    }
-    if (raw.gender) {
-      params.gender = raw.gender as Gender;
-    }
-    if (admissionYear !== null) {
-      params.admissionYear = admissionYear;
-    }
-    const school = raw.school.trim();
-    if (school) {
-      params.school = school;
-    }
-    if (ageMin !== null) {
-      params.ageMin = ageMin;
-    }
-    if (ageMax !== null) {
-      params.ageMax = ageMax;
-    }
-    return params;
-  }
-}
-
-/**
- * Normalizes an optional whole-number filter value from a number input.
- * Returns null for blank input (NumberValueAccessor emits null) and NaN for
- * non-integer input so callers can surface a validation error instead of
- * silently dropping the filter.
- */
-function toOptionalInt(value: number | null): number | null {
-  if (value === null) {
-    return null;
-  }
-  return Number.isInteger(value) ? value : Number.NaN;
 }

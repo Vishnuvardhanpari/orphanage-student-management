@@ -13,6 +13,7 @@
         class="sidebar__link"
         [routerLink]="item.path"
         routerLinkActive="sidebar__link--active"
+        [routerLinkActiveOptions]="item.path === paths.students ? { exact: true } : { exact: false }"
         [attr.aria-label]="item.label"
       >
         <lucide-icon [img]="item.icon" [size]="18" aria-hidden="true" />

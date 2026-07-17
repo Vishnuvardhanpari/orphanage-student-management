@@ -1,0 +1,25 @@
+@reference "../../../../../styles.css";
+
+.student-inactive-list {
+  @apply flex flex-col gap-4;
+}
+
+.student-inactive-list__grid {
+  @apply h-[28rem] overflow-hidden rounded-xl border border-surface-border;
+}
+
+.student-inactive-list__grid--loading {
+  @apply opacity-60 pointer-events-none;
+}
+
+.student-inactive-list__pager {
+  @apply flex flex-wrap items-center justify-between gap-3;
+}
+
+.student-inactive-list__pager-meta {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.student-inactive-list__pager-actions {
+  @apply flex gap-2;
+}

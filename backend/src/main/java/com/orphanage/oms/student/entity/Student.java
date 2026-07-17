@@ -28,7 +28,8 @@ import org.hibernate.annotations.SQLRestriction;
  * Primary student record spanning personal, guardian, education, medical, and exit data.
  *
  * <p>Default queries exclude soft-deleted rows via {@code @SQLRestriction}.
- * Admin restore / historical queries in later milestones must bypass this filter explicitly.
+ * Restore, inactive list, and archived profile reads bypass this filter explicitly
+ * via native repository queries.
  */
 @Entity
 @Table(name = "students")
