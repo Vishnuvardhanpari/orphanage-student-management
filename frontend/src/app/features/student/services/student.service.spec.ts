@@ -330,6 +330,134 @@ describe('StudentService', () => {
     expect(completed).toBeTrue();
   });
 
+  it('soft-deletes a student via DELETE with no body when no exit details are given', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    let completed = false;
+    service.softDelete(studentId).subscribe(() => {
+      completed = true;
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}`,
+    );
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.body).toBeNull();
+    req.flush(null);
+    expect(completed).toBeTrue();
+  });
+
+  // Regression for QA BUG-005: optional exit details must be sent as a JSON
+  // body so the backend can record them in the same request as the archive.
+  it('soft-deletes a student with exit details in the request body', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    let completed = false;
+    service
+      .softDelete(studentId, {
+        exitDate: '2026-01-10',
+        exitReason: 'Family relocated',
+        exitRemarks: 'Handed over to guardian',
+      })
+      .subscribe(() => {
+        completed = true;
+      });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}`,
+    );
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.body).toEqual({
+      exitDate: '2026-01-10',
+      exitReason: 'Family relocated',
+      exitRemarks: 'Handed over to guardian',
+    });
+    req.flush(null);
+    expect(completed).toBeTrue();
+  });
+
+  it('sends no body when exit details are provided but every field is blank', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    service.softDelete(studentId, {}).subscribe();
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}`,
+    );
+    expect(req.request.body).toBeNull();
+    req.flush(null);
+  });
+
+  it('restores a student via PATCH', () => {
+    const studentId = '11111111-1111-1111-1111-111111111111';
+    let status: StudentStatus | undefined;
+    service.restore(studentId).subscribe((detail) => {
+      status = detail.status;
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/${API_PATHS.students}/${studentId}/restore`,
+    );
+    expect(req.request.method).toBe('PATCH');
+    req.flush({
+      id: studentId,
+      admissionNumber: 'ADM-1',
+      firstName: 'Anita',
+      lastName: null,
+      gender: Gender.Female,
+      dateOfBirth: '2014-03-15',
+      bloodGroup: null,
+      religion: null,
+      nationality: null,
+      aadhaarNumber: null,
+      phoneNumber: null,
+      guardianName: null,
+      guardianRelationship: null,
+      guardianPhone: null,
+      guardianAddress: null,
+      schoolName: null,
+      standard: null,
+      medium: null,
+      previousSchool: null,
+      medicalConditions: null,
+      allergies: null,
+      disability: null,
+      emergencyNotes: null,
+      admissionDate: '2024-06-01',
+      exitDate: null,
+      exitReason: null,
+      exitRemarks: null,
+      status: StudentStatus.Active,
+      hasProfilePhoto: false,
+      createdDate: '2026-01-01T00:00:00Z',
+      updatedDate: '2026-01-01T00:00:00Z',
+    });
+    expect(status).toBe(StudentStatus.Active);
+  });
+
+  it('lists inactive students with paging defaults', () => {
+    let total = -1;
+    service.listInactive().subscribe((page) => {
+      total = page.totalElements;
+    });
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.apiBaseUrl}/${API_PATHS.students}/inactive` &&
+        r.params.get('page') === '0' &&
+        r.params.get('size') === '20',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      size: 20,
+      number: 0,
+      first: true,
+      last: true,
+      empty: true,
+    });
+    expect(total).toBe(0);
+  });
+
   it('updates student fields via PUT', () => {
     const studentId = '11111111-1111-1111-1111-111111111111';
     let firstName = '';

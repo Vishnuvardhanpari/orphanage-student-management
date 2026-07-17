@@ -1,8 +1,38 @@
 <section class="student-profile">
-  <app-page-header title="Student profile" subtitle="Complete student record and documents.">
-    <app-button variant="secondary" type="button" (pressed)="goBack()">Back to list</app-button>
+  <app-page-header
+    [title]="archived() ? 'Archived student profile' : 'Student profile'"
+    [subtitle]="
+      archived()
+        ? 'Read-only historical record. Editing is disabled while archived.'
+        : 'Complete student record and documents.'
+    "
+  >
+    <app-button variant="secondary" type="button" (pressed)="goBack()">
+      {{ archived() ? 'Back to archived' : 'Back to list' }}
+    </app-button>
     @if (student(); as s) {
-      <app-button variant="primary" type="button" (pressed)="editStudent()">Edit</app-button>
+      @if (archived()) {
+        @if (isAdmin()) {
+          <app-button
+            variant="primary"
+            type="button"
+            [disabled]="actionBusy()"
+            (pressed)="restoreStudent()"
+          >
+            Restore
+          </app-button>
+        }
+      } @else {
+        <app-button variant="primary" type="button" (pressed)="editStudent()">Edit</app-button>
+        <app-button
+          variant="danger"
+          type="button"
+          [disabled]="actionBusy()"
+          (pressed)="archiveStudent()"
+        >
+          Archive
+        </app-button>
+      }
     }
   </app-page-header>
 

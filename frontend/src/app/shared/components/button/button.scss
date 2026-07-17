@@ -30,6 +30,12 @@
     @apply w-full;
   }
 
+  /* Anchors have no native :disabled pseudo-class, so the disabled visual
+     state for the routerLink (<a>) variant is applied via this modifier. */
+  &--disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
   &--primary {
     @apply bg-primary-600 text-white hover:bg-primary-700;
   }

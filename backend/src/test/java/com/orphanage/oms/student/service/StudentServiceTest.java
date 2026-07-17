@@ -14,6 +14,7 @@ import com.orphanage.oms.exception.ApiException;
 import com.orphanage.oms.security.UserPrincipal;
 import com.orphanage.oms.storage.StorageService;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
+import com.orphanage.oms.student.dto.SoftDeleteStudentRequest;
 import com.orphanage.oms.student.dto.StudentCreatedResponse;
 import com.orphanage.oms.student.dto.StudentDetailResponse;
 import com.orphanage.oms.student.dto.StudentDocumentResponse;
@@ -122,7 +123,8 @@ class StudentServiceTest {
                 StudentStatus.ACTIVE,
                 null,
                 null,
-                LocalDate.of(2024, 6, 1));
+                LocalDate.of(2024, 6, 1),
+                null);
         Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "admissionDate"));
 
         when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable)))
@@ -159,6 +161,23 @@ class StudentServiceTest {
                 .hasMessageContaining("Unsupported sort property: aadhaarNumber");
         verify(studentRepository, never())
                 .findAll(ArgumentMatchers.<Specification<Student>>any(), any(Pageable.class));
+    }
+
+    // Regression for QA BUG-002: schoolName/standard are grid-sortable columns
+    // on the active list and must not be rejected by the sort whitelist.
+    @Test
+    void listAcceptsSchoolNameAndStandardSort() {
+        Pageable schoolSort = PageRequest.of(0, 20, Sort.by("schoolName"));
+        Pageable standardSort = PageRequest.of(0, 20, Sort.by("standard"));
+        when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(schoolSort)))
+                .thenReturn(new PageImpl<>(List.of(), schoolSort, 0));
+        when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(standardSort)))
+                .thenReturn(new PageImpl<>(List.of(), standardSort, 0));
+
+        assertThat(studentService.list(null, null, null, null, null, null, null, schoolSort)
+                .getTotalElements()).isZero();
+        assertThat(studentService.list(null, null, null, null, null, null, null, standardSort)
+                .getTotalElements()).isZero();
     }
 
     @Test
@@ -368,7 +387,7 @@ class StudentServiceTest {
                 Instant.parse("2026-01-01T00:00:00Z"),
                 Instant.parse("2026-01-02T00:00:00Z"));
 
-        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.of(student));
         when(studentMapper.toDetailResponse(student)).thenReturn(detail);
 
         assertThat(studentService.getById(studentId).hasProfilePhoto()).isTrue();
@@ -378,7 +397,7 @@ class StudentServiceTest {
     @Test
     void getByIdThrowsWhenMissing() {
         UUID studentId = UUID.randomUUID();
-        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> studentService.getById(studentId))
                 .isInstanceOf(ApiException.class)
@@ -388,7 +407,7 @@ class StudentServiceTest {
     @Test
     void listDocumentsRequiresStudent() {
         UUID studentId = UUID.randomUUID();
-        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> studentService.listDocuments(studentId))
                 .isInstanceOf(ApiException.class)
@@ -418,7 +437,7 @@ class StudentServiceTest {
                 10L,
                 Instant.parse("2026-01-01T00:00:00Z"));
 
-        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.of(student));
         when(studentDocumentRepository.findByStudent_IdOrderByUploadedDateDesc(studentId))
                 .thenReturn(List.of(document));
         when(studentMapper.toDocumentResponse(document)).thenReturn(mapped);
@@ -430,7 +449,7 @@ class StudentServiceTest {
     void downloadDocumentThrowsWhenOwnershipMismatch() {
         UUID studentId = UUID.randomUUID();
         UUID documentId = UUID.randomUUID();
-        when(studentRepository.findById(studentId))
+        when(studentRepository.findIncludingDeletedById(studentId))
                 .thenReturn(Optional.of(Student.builder().id(studentId).build()));
         when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
                 .thenReturn(Optional.empty());
@@ -457,7 +476,7 @@ class StudentServiceTest {
                 .build();
         byte[] bytes = "%PDF".getBytes();
 
-        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.of(student));
         when(studentDocumentRepository.findByIdAndStudent_Id(documentId, studentId))
                 .thenReturn(Optional.of(document));
         when(storageService.load(document.getStoragePath()))
@@ -472,7 +491,7 @@ class StudentServiceTest {
     @Test
     void loadProfilePhotoThrowsWhenMissing() {
         UUID studentId = UUID.randomUUID();
-        when(studentRepository.findById(studentId))
+        when(studentRepository.findIncludingDeletedById(studentId))
                 .thenReturn(Optional.of(Student.builder().id(studentId).profilePhotoPath(null).build()));
 
         assertThatThrownBy(() -> studentService.loadProfilePhoto(studentId))
@@ -487,12 +506,233 @@ class StudentServiceTest {
         Student student = Student.builder().id(studentId).profilePhotoPath(path).build();
         byte[] bytes = new byte[] {(byte) 0xFF, (byte) 0xD8};
 
-        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.of(student));
         when(storageService.load(path)).thenReturn(new ByteArrayInputStream(bytes));
 
         StoredFilePayload payload = studentService.loadProfilePhoto(studentId);
         assertThat(payload.contentType()).isEqualTo("image/jpeg");
         assertThat(payload.fileName()).isEqualTo("profile-photo.jpg");
+    }
+
+    @Test
+    void softDeleteSetsFlagsAndInactiveStatus() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .admissionNumber("ADM-DEL")
+                .status(StudentStatus.ACTIVE)
+                .deleted(false)
+                .build();
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        studentService.softDelete(studentId, null);
+
+        ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(captor.capture());
+        Student saved = captor.getValue();
+        assertThat(saved.isDeleted()).isTrue();
+        assertThat(saved.getDeletedBy()).isEqualTo(actorId);
+        assertThat(saved.getDeletedDate()).isNotNull();
+        assertThat(saved.getStatus()).isEqualTo(StudentStatus.INACTIVE);
+        assertThat(saved.getExitDate()).isNull();
+        assertThat(saved.getExitReason()).isNull();
+    }
+
+    // Regression for QA BUG-005: soft delete must record optional exit details
+    // when the caller supplies them, without requiring them.
+    @Test
+    void softDeleteRecordsExitDetailsWhenProvided() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .admissionNumber("ADM-DEL-2")
+                .status(StudentStatus.ACTIVE)
+                .admissionDate(LocalDate.of(2024, 6, 1))
+                .deleted(false)
+                .build();
+        SoftDeleteStudentRequest exitDetails = new SoftDeleteStudentRequest(
+                LocalDate.of(2026, 1, 10), "Family relocated", "Handed over to guardian");
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        studentService.softDelete(studentId, exitDetails);
+
+        ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(captor.capture());
+        Student saved = captor.getValue();
+        assertThat(saved.isDeleted()).isTrue();
+        assertThat(saved.getExitDate()).isEqualTo(LocalDate.of(2026, 1, 10));
+        assertThat(saved.getExitReason()).isEqualTo("Family relocated");
+        assertThat(saved.getExitRemarks()).isEqualTo("Handed over to guardian");
+    }
+
+    @Test
+    void softDeleteRejectsExitDateBeforeAdmissionDate() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .admissionNumber("ADM-DEL-3")
+                .status(StudentStatus.ACTIVE)
+                .admissionDate(LocalDate.of(2024, 6, 1))
+                .deleted(false)
+                .build();
+        SoftDeleteStudentRequest exitDetails =
+                new SoftDeleteStudentRequest(LocalDate.of(2023, 1, 1), null, null);
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+
+        assertThatThrownBy(() -> studentService.softDelete(studentId, exitDetails))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Exit date must be on or after the admission date");
+        verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void softDeleteThrowsWhenAlreadyDeleted() {
+        UUID studentId = UUID.randomUUID();
+        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studentService.softDelete(studentId, null))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Student not found");
+    }
+
+    @Test
+    void restoreClearsFlagsAndSetsActive() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .admissionNumber("ADM-RES")
+                .status(StudentStatus.INACTIVE)
+                .deleted(true)
+                .deletedBy(actorId)
+                .deletedDate(Instant.parse("2026-01-01T00:00:00Z"))
+                .exitDate(LocalDate.of(2025, 12, 1))
+                .exitReason("Left")
+                .build();
+        StudentDetailResponse detail = new StudentDetailResponse(
+                studentId,
+                "ADM-RES",
+                "Anita",
+                null,
+                Gender.FEMALE,
+                LocalDate.of(2014, 3, 15),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.of(2024, 6, 1),
+                LocalDate.of(2025, 12, 1),
+                "Left",
+                null,
+                StudentStatus.ACTIVE,
+                false,
+                Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-02T00:00:00Z"));
+
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.of(student));
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(studentMapper.toDetailResponse(any(Student.class))).thenReturn(detail);
+
+        StudentDetailResponse response = studentService.restore(studentId);
+
+        assertThat(response.status()).isEqualTo(StudentStatus.ACTIVE);
+        ArgumentCaptor<Student> captor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(captor.capture());
+        Student saved = captor.getValue();
+        assertThat(saved.isDeleted()).isFalse();
+        assertThat(saved.getDeletedBy()).isNull();
+        assertThat(saved.getDeletedDate()).isNull();
+        assertThat(saved.getStatus()).isEqualTo(StudentStatus.ACTIVE);
+        assertThat(saved.getExitDate()).isEqualTo(LocalDate.of(2025, 12, 1));
+        assertThat(saved.getExitReason()).isEqualTo("Left");
+    }
+
+    @Test
+    void restoreThrowsConflictWhenNotDeleted() {
+        UUID studentId = UUID.randomUUID();
+        Student student = Student.builder()
+                .id(studentId)
+                .deleted(false)
+                .status(StudentStatus.ACTIVE)
+                .build();
+        when(studentRepository.findIncludingDeletedById(studentId)).thenReturn(Optional.of(student));
+
+        assertThatThrownBy(() -> studentService.restore(studentId))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("not archived");
+        verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void listInactiveMapsDeletedStudents() {
+        Student student = Student.builder()
+                .id(UUID.randomUUID())
+                .admissionNumber("ADM-IN")
+                .firstName("Ghost")
+                .gender(Gender.OTHER)
+                .dateOfBirth(LocalDate.of(2014, 1, 1))
+                .admissionDate(LocalDate.of(2024, 1, 1))
+                .status(StudentStatus.INACTIVE)
+                .deleted(true)
+                .build();
+        StudentSummaryResponse summary = new StudentSummaryResponse(
+                student.getId(),
+                "ADM-IN",
+                "Ghost",
+                null,
+                Gender.OTHER,
+                LocalDate.of(2014, 1, 1),
+                StudentStatus.INACTIVE,
+                null,
+                null,
+                LocalDate.of(2024, 1, 1),
+                Instant.parse("2026-01-05T00:00:00Z"));
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "deletedDate"));
+        Pageable nativePageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "deleted_date"));
+
+        when(studentRepository.findAllDeleted(eq(nativePageable)))
+                .thenReturn(new PageImpl<>(List.of(student), nativePageable, 1));
+        when(studentMapper.toSummaryResponse(student)).thenReturn(summary);
+
+        Page<StudentSummaryResponse> page = studentService.listInactive(pageable);
+
+        assertThat(page.getContent()).containsExactly(summary);
+    }
+
+    // Regression for QA BUG-002: sorting the archived list by School used to
+    // 400 because schoolName was missing from the inactive-list sort whitelist.
+    @Test
+    void listInactiveAcceptsSchoolNameSort() {
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "schoolName"));
+        Pageable nativePageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "school_name"));
+        when(studentRepository.findAllDeleted(eq(nativePageable)))
+                .thenReturn(new PageImpl<>(List.of(), nativePageable, 0));
+
+        assertThat(studentService.listInactive(pageable).getTotalElements()).isZero();
+    }
+
+    @Test
+    void listInactiveRejectsUnsupportedSort() {
+        Pageable pageable = PageRequest.of(0, 20, Sort.by("aadhaarNumber"));
+
+        assertThatThrownBy(() -> studentService.listInactive(pageable))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Unsupported sort property: aadhaarNumber");
+        verify(studentRepository, never()).findAllDeleted(any(Pageable.class));
     }
 
     @Test

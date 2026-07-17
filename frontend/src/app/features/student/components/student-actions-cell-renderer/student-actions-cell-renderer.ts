@@ -9,7 +9,12 @@ import { StudentSummary } from '../../models/student.models';
 
 export interface StudentActionsCellContext {
   onView: (student: StudentSummary) => void;
-  onEdit: (student: StudentSummary) => void;
+  onEdit?: (student: StudentSummary) => void;
+  onArchive?: (student: StudentSummary) => void;
+  onRestore?: (student: StudentSummary) => void;
+  showEdit?: boolean;
+  showArchive?: boolean;
+  showRestore?: boolean;
 }
 
 type StudentActionsParams = ICellRendererParams<
@@ -32,14 +37,36 @@ type StudentActionsParams = ICellRendererParams<
         >
           View
         </button>
-        <button
-          type="button"
-          class="student-grid-actions__btn"
-          [attr.aria-label]="'Edit student ' + displayName(s)"
-          (click)="edit()"
-        >
-          Edit
-        </button>
+        @if (showEdit()) {
+          <button
+            type="button"
+            class="student-grid-actions__btn"
+            [attr.aria-label]="'Edit student ' + displayName(s)"
+            (click)="edit()"
+          >
+            Edit
+          </button>
+        }
+        @if (showArchive()) {
+          <button
+            type="button"
+            class="student-grid-actions__btn student-grid-actions__btn--danger"
+            [attr.aria-label]="'Archive student ' + displayName(s)"
+            (click)="archive()"
+          >
+            Archive
+          </button>
+        }
+        @if (showRestore()) {
+          <button
+            type="button"
+            class="student-grid-actions__btn"
+            [attr.aria-label]="'Restore student ' + displayName(s)"
+            (click)="restore()"
+          >
+            Restore
+          </button>
+        }
       </div>
     }
   `,
@@ -67,6 +94,12 @@ type StudentActionsParams = ICellRendererParams<
     .student-grid-actions__btn:hover {
       background: var(--color-primary-50, #eff6ff);
     }
+    .student-grid-actions__btn--danger {
+      color: var(--color-danger-700, #b91c1c);
+    }
+    .student-grid-actions__btn--danger:hover {
+      background: var(--color-danger-50, #fef2f2);
+    }
     .student-grid-actions__btn:focus-visible {
       outline: 2px solid var(--color-primary-500, #3b82f6);
       outline-offset: 2px;
@@ -78,6 +111,9 @@ export class StudentActionsCellRenderer implements ICellRendererAngularComp {
   private params?: StudentActionsParams;
 
   readonly student = signal<StudentSummary | null>(null);
+  readonly showEdit = signal(true);
+  readonly showArchive = signal(false);
+  readonly showRestore = signal(false);
 
   agInit(params: StudentActionsParams): void {
     this.applyParams(params);
@@ -102,12 +138,30 @@ export class StudentActionsCellRenderer implements ICellRendererAngularComp {
   edit(): void {
     const s = this.student();
     if (s) {
-      this.params?.context?.onEdit(s);
+      this.params?.context?.onEdit?.(s);
+    }
+  }
+
+  archive(): void {
+    const s = this.student();
+    if (s) {
+      this.params?.context?.onArchive?.(s);
+    }
+  }
+
+  restore(): void {
+    const s = this.student();
+    if (s) {
+      this.params?.context?.onRestore?.(s);
     }
   }
 
   private applyParams(params: StudentActionsParams): void {
     this.params = params;
     this.student.set(params.data ?? null);
+    const ctx = params.context;
+    this.showEdit.set(ctx?.showEdit !== false && !!ctx?.onEdit);
+    this.showArchive.set(!!ctx?.showArchive && !!ctx?.onArchive);
+    this.showRestore.set(!!ctx?.showRestore && !!ctx?.onRestore);
   }
 }

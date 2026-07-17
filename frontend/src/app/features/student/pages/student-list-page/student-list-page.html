@@ -3,9 +3,12 @@
     title="Students"
     subtitle="Search, filter, and manage student records."
   >
-    <a [routerLink]="[paths.students, 'new']">
-      <app-button variant="primary">Add student</app-button>
-    </a>
+    <app-button variant="secondary" [routerLink]="paths.studentsInactive">
+      Archived students
+    </app-button>
+    <app-button variant="primary" [routerLink]="[paths.students, 'new']">
+      Add student
+    </app-button>
   </app-page-header>
 
   <form
@@ -30,14 +33,6 @@
         <option value="MALE">Male</option>
         <option value="FEMALE">Female</option>
         <option value="OTHER">Other</option>
-      </select>
-    </label>
-    <label class="student-list__field">
-      <span>Status</span>
-      <select formControlName="status" class="student-list__input">
-        <option value="">All</option>
-        <option value="ACTIVE">Active</option>
-        <option value="INACTIVE">Inactive</option>
       </select>
     </label>
     <label class="student-list__field">

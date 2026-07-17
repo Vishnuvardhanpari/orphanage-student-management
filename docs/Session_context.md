@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 8 — Student Search (completed and closed; merged to `main` with QA bug fixes #37–#43)
+Milestone 9 — Student Soft Delete & Restore (implementation complete; pending self/independent review and merge)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 8 — Student Search
+Milestone 9 — Student Soft Delete & Restore
 
 ---
 
@@ -222,15 +222,7 @@ Milestone 8 — Student Search
 
 ### Milestone 7 QA bug fixes (BUG-001–007, issues #29–#35)
 
-* BUG-001: `StudentFileUpload` photo preview now syncs with the parent `photo` input (effect clears stale preview after successful replace)
-* BUG-002: Save changes with pending photo/documents opens a confirm dialog ("Save and discard") before discarding un-uploaded files
-* BUG-003: duplicate error toasts removed — the global `errorInterceptor` owns HTTP error toasts; blob endpoints (`fetchPhoto`, `downloadDocument`) opt out via new `SKIP_ERROR_TOAST` `HttpContextToken` and keep their contextual toast
-* BUG-004: replace-document path validates type/size client-side via shared `student-file-validation.ts` helpers (also used by add path)
-* BUG-005: separate `photoUploading` / `docsUploading` signals; button labels no longer cross-trigger; `mediaBusy` is now a computed over all media operations
-* BUG-006: replace row includes a document-type select; selected type is sent on `PUT .../documents/{documentId}`
-* BUG-007: new endpoints `DELETE /students/{id}/photo` (clears path + storage) and `DELETE /students/{id}/documents/{documentId}` (soft delete, storage retained); edit page has Remove photo / Delete document actions with confirm dialogs
-* `ConfirmDialog` moved from `features/user/components` to `shared/components/confirm-dialog` for reuse
-* Integration tests now purge student tables with native SQL (bypasses `@SQLRestriction`) so soft-deleted rows cannot leak between suites
+* BUG-001–007 resolved and merged to `main`
 
 ---
 
@@ -254,40 +246,79 @@ Milestone 8 — Student Search
 * Age column sorts via `dateOfBirth` with inverted direction; server-side sort mapping per column
 * Empty states for "no students yet" vs "no matching students"; actions cell (View / Edit)
 
-### Milestone 8 QA bug fixes (issues #37–#42)
+### Milestone 8 QA bug fixes (issues #37–#43)
 
-* #37: duplicate error toasts on list load failure removed — the global `errorInterceptor` owns the HTTP error toast; the list page no longer shows its own
-* #39: list load failure now renders a dedicated "Unable to load students" error state with a Retry button instead of the misleading "No students yet" empty state (new `loadFailed` signal)
-* #40: non-integer age / admission-year filter values are rejected with a validation toast instead of being silently ignored (`parseOptionalInt` returns `NaN` for invalid input)
-* #41: roadmap Milestone 8 API deliverables synced — removed `/students/search`, replaced `age` with `ageMin`/`ageMax`
-* #42: `docs/06_Database_Design.md` now documents the `date_of_birth` index (Flyway V6)
-* #38: this document updated for Milestone 8
-* #43 (High): admission year / age / school filters crashed in the browser — number inputs use Angular's `NumberValueAccessor` (emits `number | null`, never strings), but the form typed them as strings and `parseOptionalInt(value: string)` threw `TypeError` on `.trim()`. Filter controls are now honestly typed `FormControl<number | null>`, parsing replaced by `toOptionalInt(number | null)` (null = no filter, `NaN` = non-integer → validation toast, preserving the #40 fix), `clearFilters()` resets number fields to `null`. Regression specs now drive the real DOM inputs (`input` events through `NumberValueAccessor`) covering QA's four scenarios; supersedes part of #40
+* #37–#43 resolved and merged to `main`
+
+---
+
+## Milestone 9 — Student Soft Delete & Restore (implemented on `milestone/student-soft-delete`)
+
+### Backend
+
+* `DELETE /api/v1/students/{id}` — soft delete (`deleted`, `deletedBy`, `deletedDate`, `status=INACTIVE`); ADMIN/STAFF; `204`; already deleted → `404`. Optionally accepts a JSON body (`exitDate`, `exitReason`, `exitRemarks`) to record exit details in the same request (QA BUG-005)
+* `PATCH /api/v1/students/{id}/restore` — ADMIN only; clear delete flags + `ACTIVE`; `200` detail; not deleted → `409`
+* `GET /api/v1/students/inactive` — ADMIN/STAFF; paginated soft-deleted rows (native query bypasses `@SQLRestriction`); default sort `deletedDate,desc`; response rows include `deletedDate` (QA BUG-007)
+* Sort whitelist for `/students` and `/students/inactive` includes `schoolName` and `standard` (QA BUG-002)
+* Profile/photo/documents **reads** include soft-deleted students (archived profile)
+* Mutations still require an active student → archived → `404`
+* No Flyway / schema changes
+* Unit tests + `StudentSoftDeleteIntegrationTest` (authz, inactive list, restore, mutations blocked, optional exit details, exit-date validation)
+
+### Frontend
+
+* Active list: Archive action opens `ArchiveStudentDialog` (optional exit date/reason/remarks) instead of a plain confirm; link to Archived students; Status filter removed from the active list (QA BUG-003, its value duplicated the page itself)
+* `/students/inactive` archived list (ADMIN + STAFF); Restore action ADMIN-only; grid shows the `Deleted on` column (QA BUG-007)
+* `/students/inactive/:id` read-only archived profile (photo + document download); Restore for ADMIN
+* Active profile: Archive action via `ArchiveStudentDialog`; Edit hidden when archived
+* Archived/active UI mode (`archived()`) is derived from the loaded student's `status`, not from route data (QA BUG-001); route data is only a loading-state hint
+* `app-button` supports a `routerLink` input so navigation actions render a single `<a>` instead of nesting a `<button>` inside an anchor (QA BUG-004); the projected label is captured once via an `<ng-template>` and replayed into whichever branch renders via `NgTemplateOutlet`, so it survives Angular's static content-projection resolution across the `@if`/`@else` branches (QA BUG-UI-001)
+* Sidebar: Archived Students; Students nav exact-match so inactive does not highlight both
+* `StudentService.softDelete(id, exitDetails?)` / `restore` / `listInactive`
+* Dedicated spec coverage added for the archived list page, the archive/restore dialogs, and the `Button` routerLink variant (QA BUG-006)
+
+### Docs
+
+* `docs/07_API_Design.md` Milestone 9 contracts expanded, including the optional soft-delete request body and `schoolName`/`standard` sort support
+
+### Milestone 9 QA bug fixes (BUG-001–007, issues #45–#51)
+
+* BUG-001 — Archived UI mode is now derived from `student.status` instead of static route data
+* BUG-002 — `schoolName`/`standard` added to both list endpoints' sort whitelists
+* BUG-003 — Status filter removed from the active student list (redundant with the list itself)
+* BUG-004 — `app-button` gained a `routerLink` input; student pages no longer nest a `<button>` inside an `<a>`
+* BUG-005 — `DELETE /students/{id}` now accepts an optional exit-details body; `ArchiveStudentDialog` captures it in the UI
+* BUG-006 — Added missing specs for the archived list page, archive/restore dialog flows, and the `Button` routerLink variant
+* BUG-007 — `deletedDate` added to `StudentSummaryResponse`/model and the archived grid
+
+### Milestone 9 QA bug fixes, round 2 (BUG-UI-001–002, issues #52–#53)
+
+* BUG-UI-001 — `app-button`'s `routerLink` (`<a>`) variant rendered with no visible label. Root cause: Angular resolves content projection statically at compile time, so a component template that places `<ng-content>` directly inside more than one `@if`/`@else` branch only ever projects into one of the branches (documented upstream: angular/angular#7795, #61282, #53310) — ours projected into the `<button>` `@else` branch only. Fixed in `button.html` by hoisting the projected content into a single `<ng-template #label>` and rendering it in both branches via `<ng-container [ngTemplateOutlet]="label" />`; no change to the component's public API (inputs/outputs) or any of the 3 call sites (`student-list-page`, `student-inactive-list-page`)
+* BUG-UI-002 — `button.spec.ts` only asserted tag type/CSS class for the `routerLink` variant, never the projected label, which is why BUG-UI-001 shipped undetected. Added label-text regression coverage (`button.spec.ts`, driven through a host wrapper component so real content projection is exercised) plus header-label assertions in `student-list-page.spec.ts` and `student-inactive-list-page.spec.ts`
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–6. Student update specifics:
+Unchanged from Milestone 1–8, plus Milestone 9:
 
-* Four write endpoints (fields JSON; photo/docs multipart) rather than one fat multipart PUT
-* Full PUT for editable fields (not PATCH); admission number omitted from update DTO
-* Profile photo remains on `profile_photo_path` only (never a `PHOTOGRAPH` document row)
-* Field save and media uploads are independent so a failed file upload does not roll back text changes
-* Document logical DELETE and photo removal shipped with Milestone 7 QA fixes (BUG-007); document storage objects are retained on soft delete
+* Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
+* Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
+* Active `GET /students` continues to exclude soft-deleted rows
+* Document soft-delete / GCS objects are not cascaded when archiving a student
 
 ---
 
 # Current Objective
 
-Begin Milestone 9 — Student Soft Delete & Restore.
+Complete Milestone 9 review (self + independent), then merge when approved.
 
 ---
 
 # Current Branch
 
 ```text
-main
+milestone/student-soft-delete
 ```
 
 ---
@@ -298,17 +329,17 @@ main
 * Spring Security + JWT + Google OAuth (GIS ID token)
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
-* `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore queries must bypass explicitly (native/`@Query`)
-* Milestone 5 = registration only (completed)
-* Milestone 6 = profile view + document list/download + authenticated `GET /students/{id}/photo` (completed)
-* Milestone 7 = update fields + replace photo + add/replace documents (implemented, pending merge)
+* `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
+* Milestone 5–8 completed and merged
+* Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 
 ---
 
 # Pending Milestones
 
-* Milestone 9 — Student Soft Delete & Restore
+* Milestone 9 — Student Soft Delete & Restore (in review)
+* Milestone 10 — Reports & PDF Export
 * … (see roadmap)
 
 ---
@@ -323,7 +354,9 @@ None.
 
 # Next Session Goal
 
-1. Begin Milestone 9 — Student Soft Delete & Restore (soft delete, restore, inactive list)
+1. Self-review / independent review of Milestone 9
+2. Manual verification checklist
+3. Merge when approved
 
 ---
 

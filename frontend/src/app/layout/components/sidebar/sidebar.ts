@@ -6,6 +6,7 @@ import {
   Users,
   FileText,
   UserCog,
+  Archive,
 } from 'lucide-angular';
 import { APP_PATHS } from '../../../core/constants/routes';
 import { AuthService } from '../../../features/auth/services/auth.service';
@@ -28,9 +29,12 @@ interface NavItem {
 export class Sidebar {
   private readonly authService = inject(AuthService);
 
+  protected readonly paths = APP_PATHS;
+
   private readonly allItems: NavItem[] = [
     { label: 'Dashboard', path: APP_PATHS.dashboard, icon: LayoutDashboard },
     { label: 'Students', path: APP_PATHS.students, icon: Users },
+    { label: 'Archived Students', path: APP_PATHS.studentsInactive, icon: Archive },
     { label: 'Reports', path: APP_PATHS.reports, icon: FileText },
     { label: 'Users', path: APP_PATHS.users, icon: UserCog, adminOnly: true },
   ];

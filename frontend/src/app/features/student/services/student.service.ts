@@ -15,6 +15,7 @@ import { PageResponse } from '../../../shared/models/page.models';
 import {
   CreateStudentRequest,
   DocumentType,
+  SoftDeleteExitDetails,
   StudentCreatedResponse,
   StudentDetail,
   StudentDocumentMeta,
@@ -182,6 +183,51 @@ export class StudentService {
 
   deleteDocument(studentId: string, documentId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${studentId}/documents/${documentId}`);
+  }
+
+  /**
+   * Soft-delete (archive) a student, optionally recording exit details
+   * (Milestone 9 QA — BUG-005). Omitted/blank fields are sent as `null` so
+   * the body always reflects exactly what the caller provided; omitting the
+   * body entirely (no fields set) preserves the original flags-only behavior.
+   */
+  softDelete(id: string, exitDetails?: SoftDeleteExitDetails): Observable<void> {
+    const hasExitDetails =
+      !!exitDetails &&
+      (exitDetails.exitDate != null ||
+        exitDetails.exitReason != null ||
+        exitDetails.exitRemarks != null);
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, {
+      body: hasExitDetails
+        ? {
+            exitDate: exitDetails?.exitDate ?? null,
+            exitReason: exitDetails?.exitReason ?? null,
+            exitRemarks: exitDetails?.exitRemarks ?? null,
+          }
+        : undefined,
+    });
+  }
+
+  /** Restore an archived student (ADMIN only). */
+  restore(id: string): Observable<StudentDetail> {
+    return this.http.patch<StudentDetail>(`${this.baseUrl}/${id}/restore`, {});
+  }
+
+  /**
+   * Paginated soft-deleted (archived) students.
+   */
+  listInactive(
+    params: { page?: number; size?: number; sort?: string } = {},
+  ): Observable<PageResponse<StudentSummary>> {
+    let httpParams = new HttpParams();
+    httpParams = httpParams.set('page', String(params.page ?? 0));
+    httpParams = httpParams.set('size', String(params.size ?? 20));
+    if (params.sort) {
+      httpParams = httpParams.set('sort', params.sort);
+    }
+    return this.http.get<PageResponse<StudentSummary>>(`${this.baseUrl}/inactive`, {
+      params: httpParams,
+    });
   }
 
   getById(id: string): Observable<StudentDetail> {
