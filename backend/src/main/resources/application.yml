@@ -68,6 +68,10 @@ oms:
       base-path: ${OMS_STORAGE_LOCAL_PATH:./storage}
     gcs:
       bucket: ${GCS_BUCKET_NAME:}
+  reports:
+    organization-name: ${OMS_REPORTS_ORGANIZATION_NAME:Orphanage Management System}
+    max-selected-students: ${OMS_REPORTS_MAX_SELECTED:50}
+    max-filter-results: ${OMS_REPORTS_MAX_FILTER:100}
   security:
     jwt:
       secret: ${JWT_SECRET:change_me_use_a_long_random_secret_at_least_32_chars}

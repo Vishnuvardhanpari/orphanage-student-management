@@ -17,6 +17,7 @@ import com.orphanage.oms.student.enums.DocumentType;
 import com.orphanage.oms.student.enums.Gender;
 import com.orphanage.oms.student.enums.StudentStatus;
 import com.orphanage.oms.student.mapper.StudentMapper;
+import com.orphanage.oms.student.repository.StudentDeletedQuery;
 import com.orphanage.oms.student.repository.StudentDocumentRepository;
 import com.orphanage.oms.student.repository.StudentRepository;
 import com.orphanage.oms.student.repository.StudentSpecifications;
@@ -27,13 +28,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -77,21 +76,8 @@ public class StudentService {
             "schoolName",
             "standard");
 
-    /** Maps API sort properties to SQL column names for native inactive queries. */
-    private static final Map<String, String> SORT_PROPERTY_TO_COLUMN = Map.ofEntries(
-            Map.entry("admissionNumber", "admission_number"),
-            Map.entry("firstName", "first_name"),
-            Map.entry("lastName", "last_name"),
-            Map.entry("gender", "gender"),
-            Map.entry("dateOfBirth", "date_of_birth"),
-            Map.entry("admissionDate", "admission_date"),
-            Map.entry("status", "status"),
-            Map.entry("createdDate", "created_date"),
-            Map.entry("deletedDate", "deleted_date"),
-            Map.entry("schoolName", "school_name"),
-            Map.entry("standard", "standard"));
-
     private final StudentRepository studentRepository;
+    private final StudentDeletedQuery studentDeletedQuery;
     private final StudentDocumentRepository studentDocumentRepository;
     private final StudentMapper studentMapper;
     private final StudentFileValidator fileValidator;
@@ -99,11 +85,13 @@ public class StudentService {
 
     public StudentService(
             StudentRepository studentRepository,
+            StudentDeletedQuery studentDeletedQuery,
             StudentDocumentRepository studentDocumentRepository,
             StudentMapper studentMapper,
             StudentFileValidator fileValidator,
             StorageService storageService) {
         this.studentRepository = studentRepository;
+        this.studentDeletedQuery = studentDeletedQuery;
         this.studentDocumentRepository = studentDocumentRepository;
         this.studentMapper = studentMapper;
         this.fileValidator = fileValidator;
@@ -113,10 +101,13 @@ public class StudentService {
     /**
      * Paginated student list with optional global search and combinable filters.
      * Age bounds are translated into a date-of-birth window; age is never persisted.
+     *
+     * @param admissionNumber exact case-insensitive match when provided
      */
     @Transactional(readOnly = true)
     public Page<StudentSummaryResponse> list(
             String search,
+            String admissionNumber,
             Gender gender,
             StudentStatus status,
             Integer admissionYear,
@@ -125,48 +116,44 @@ public class StudentService {
             Integer ageMax,
             Pageable pageable) {
         validateSort(pageable.getSort());
-        validateAgeRange(ageMin, ageMax);
 
-        List<Specification<Student>> specs = new ArrayList<>();
-
-        String normalizedSearch = blankToNull(search);
-        if (normalizedSearch != null) {
-            specs.add(StudentSpecifications.matchesSearch(normalizedSearch));
-        }
-        if (gender != null) {
-            specs.add(StudentSpecifications.hasGender(gender));
-        }
-        if (status != null) {
-            specs.add(StudentSpecifications.hasStatus(status));
-        }
-        if (admissionYear != null) {
-            specs.add(StudentSpecifications.admittedInYear(admissionYear));
-        }
-        String normalizedSchool = blankToNull(school);
-        if (normalizedSchool != null) {
-            specs.add(StudentSpecifications.schoolContains(normalizedSchool));
-        }
-        if (ageMin != null || ageMax != null) {
-            LocalDate today = LocalDate.now();
-            LocalDate maxDateOfBirth = ageMin != null ? today.minusYears(ageMin) : null;
-            LocalDate minDateOfBirthExclusive =
-                    ageMax != null ? today.minusYears(ageMax + 1L) : null;
-            specs.add(StudentSpecifications.bornBetween(minDateOfBirthExclusive, maxDateOfBirth));
-        }
+        Specification<Student> specification = StudentSpecifications.buildListSpecification(
+                search, admissionNumber, gender, status, admissionYear, school, ageMin, ageMax);
 
         return studentRepository
-                .findAll(Specification.allOf(specs), pageable)
+                .findAll(specification, pageable)
                 .map(studentMapper::toSummaryResponse);
     }
 
     /**
      * Paginated soft-deleted (archived) students. Bypasses {@code @SQLRestriction}.
+     * Optional filters mirror the active list (except status / admissionNumber).
      */
     @Transactional(readOnly = true)
-    public Page<StudentSummaryResponse> listInactive(Pageable pageable) {
+    public Page<StudentSummaryResponse> listInactive(
+            String search,
+            Gender gender,
+            Integer admissionYear,
+            String school,
+            Integer ageMin,
+            Integer ageMax,
+            Pageable pageable) {
         validateSort(pageable.getSort(), ALLOWED_INACTIVE_SORT_PROPERTIES);
-        Pageable nativePageable = toNativeSortPageable(pageable);
-        return studentRepository.findAllDeleted(nativePageable).map(studentMapper::toSummaryResponse);
+        StudentSpecifications.validateAgeRange(ageMin, ageMax);
+        LocalDate[] dobBounds = (ageMin != null || ageMax != null)
+                ? StudentSpecifications.ageToDateOfBirthBounds(ageMin, ageMax)
+                : new LocalDate[] {null, null};
+
+        return studentDeletedQuery
+                .findDeletedMatching(
+                        blankToNull(search),
+                        gender,
+                        admissionYear,
+                        blankToNull(school),
+                        dobBounds[0],
+                        dobBounds[1],
+                        pageable)
+                .map(studentMapper::toSummaryResponse);
     }
 
     private static void validateSort(Sort sort) {
@@ -181,31 +168,6 @@ public class StudentService {
                         "Validation Error",
                         "Unsupported sort property: " + order.getProperty());
             }
-        }
-    }
-
-    private static Pageable toNativeSortPageable(Pageable pageable) {
-        Sort nativeSort = Sort.by(pageable.getSort().stream()
-                .map(order -> {
-                    String column = SORT_PROPERTY_TO_COLUMN.get(order.getProperty());
-                    return order.isAscending() ? Sort.Order.asc(column) : Sort.Order.desc(column);
-                })
-                .toList());
-        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), nativeSort);
-    }
-
-    private static void validateAgeRange(Integer ageMin, Integer ageMax) {
-        if ((ageMin != null && ageMin < 0) || (ageMax != null && ageMax < 0)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Validation Error",
-                    "Age filters must not be negative.");
-        }
-        if (ageMin != null && ageMax != null && ageMin > ageMax) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Validation Error",
-                    "ageMin must be less than or equal to ageMax.");
         }
     }
 

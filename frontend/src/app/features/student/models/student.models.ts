@@ -131,8 +131,23 @@ export interface StudentSummary {
 /** Query parameters for GET /api/v1/students. All filters are optional. */
 export interface StudentListParams {
   search?: string;
+  /** Exact case-insensitive admission number match. */
+  admissionNumber?: string;
   gender?: Gender | '';
   status?: StudentStatus | '';
+  admissionYear?: number | null;
+  school?: string;
+  ageMin?: number | null;
+  ageMax?: number | null;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+/** Query parameters for GET /api/v1/students/inactive. */
+export interface StudentInactiveListParams {
+  search?: string;
+  gender?: Gender | '';
   admissionYear?: number | null;
   school?: string;
   ageMin?: number | null;

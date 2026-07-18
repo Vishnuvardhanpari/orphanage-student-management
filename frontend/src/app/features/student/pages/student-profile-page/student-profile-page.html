@@ -11,6 +11,14 @@
       {{ archived() ? 'Back to archived' : 'Back to list' }}
     </app-button>
     @if (student(); as s) {
+      <app-button
+        variant="secondary"
+        type="button"
+        [disabled]="exporting()"
+        (pressed)="exportPdf()"
+      >
+        {{ exporting() ? 'Exporting…' : 'Export PDF' }}
+      </app-button>
       @if (archived()) {
         @if (isAdmin()) {
           <app-button

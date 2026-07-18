@@ -379,6 +379,7 @@ Paginated student list with optional global search, combinable filters, and sort
 * `size` — page size (default `20`)
 * `sort` — `property,direction` (default `admissionDate,desc`). Allowed properties: `admissionNumber`, `firstName`, `lastName`, `gender`, `dateOfBirth`, `admissionDate`, `status`, `createdDate`, `schoolName`, `standard`. Any other property → `400`.
 * `search` — case-insensitive contains match across first name, last name, full name, admission number, Aadhaar number, guardian name, and phone number
+* `admissionNumber` — exact case-insensitive match on admission number (unique); typically used with `size=1` for Reports single-student lookup
 * `gender` — `MALE` | `FEMALE` | `OTHER`
 * `status` — `ACTIVE` | `INACTIVE`
 * `admissionYear` — calendar year of `admissionDate` (e.g. `2024`)
@@ -549,6 +550,11 @@ Paginated list of soft-deleted students (`deleted = true`). ADMIN and STAFF. Byp
 * `page` — zero-based page index (default `0`)
 * `size` — page size (default `20`)
 * `sort` — `property,direction` (default `deletedDate,desc`). Allowed properties: same as list/search, plus `deletedDate`. Any other property → `400`.
+* `search` — same semantics as active list search
+* `gender` — `MALE` | `FEMALE` | `OTHER`
+* `admissionYear` — calendar year of `admissionDate`
+* `school` — case-insensitive contains match on school name
+* `ageMin` / `ageMax` — same age-range semantics as active list
 
 Response also includes `deletedDate` (ISO-8601 timestamp) per row, only ever populated here (Milestone 9 QA — BUG-007).
 
@@ -620,29 +626,89 @@ Milestone 6–7 endpoints:
 
 # Reports
 
-GET
+ADMIN and STAFF (`hasAnyRole('ADMIN', 'STAFF')`). JWT required. No schema / Flyway changes.
 
+PDFs are generated on the backend (OpenPDF). Response body is raw PDF bytes.
+
+**Document handling (Milestone 10):**
+
+* Profile photo embedded when available
+* Supporting **image** documents (JPG/JPEG/PNG) embedded inline with caption
+* Supporting **PDF** documents listed as references only (type, original file name, uploaded date) — not merged into the report
+* Report audit for M10 is structured SLF4J logging; persistent `audit_logs` deferred to Milestone 12
+
+Configurable limits (`oms.reports` / env):
+
+* `OMS_REPORTS_ORGANIZATION_NAME` — PDF header organization name (default: Orphanage Management System)
+* `OMS_REPORTS_MAX_SELECTED` — max IDs for selected export (default: 50)
+* `OMS_REPORTS_MAX_FILTER` — max students for filter export (default: 100)
+
+## Export single student
+
+`GET /reports/student/{studentId}`
+
+* Includes soft-deleted (archived) students
+* Response `200` — `application/pdf`
+* `Content-Disposition: attachment; filename="student-report-{admissionNumber}.pdf"`
+* `404` — student not found
+
+## Export selected students
+
+`POST /reports/students`
+
+Request body:
+
+```json
+{
+  "studentIds": ["uuid-1", "uuid-2"]
+}
 ```
-/reports/student/{studentId}
+
+* At least one ID required; max size enforced in `ReportService` via `max-selected-students` (configurable; not hardcoded Bean Validation)
+* Each ID may be active or archived; unknown ID → `404`
+* Sorted by `admissionDate` descending in the PDF
+* Response `200` — `application/pdf`
+* `Content-Disposition: attachment; filename="students-report-{yyyyMMdd-HHmm}.pdf"`
+* `400` — empty selection or over limit
+
+## Export filtered students
+
+`POST /reports/filter`
+
+Request body (all fields optional; mirrors list filters, no pagination):
+
+```json
+{
+  "scope": "ACTIVE | ARCHIVED | ALL",
+  "search": "string",
+  "gender": "MALE | FEMALE | OTHER",
+  "admissionYear": 2024,
+  "school": "string",
+  "ageMin": 5,
+  "ageMax": 18
+}
 ```
 
-Generate Single Student PDF
+* `scope` defaults to `ACTIVE` when omitted
+* `ACTIVE` — non-deleted students (same population as `GET /students`)
+* `ARCHIVED` — soft-deleted students (same population as `GET /students/inactive`)
+* `ALL` — union of active and archived matching the other filters
+* Filter predicates for active rows shared with `GET /students` via `StudentSpecifications.buildListSpecification`
+* `400` — invalid age range, zero matches, or match count exceeds `max-filter-results`
+* Response `200` — same PDF attachment pattern as selected export
 
-POST
+### Exact admission number lookup (list API)
 
-```
-/reports/students
-```
+`GET /students?admissionNumber={value}`
 
-Generate PDF for selected students.
+* Additive query parameter on the existing list endpoint
+* Exact, case-insensitive match (admission numbers are unique)
+* Soft-deleted rows remain excluded (same as other `GET /students` queries)
+* Combinable with pagination; typically `page=0&size=1` for report lookup
 
-POST
+### Archived list filters
 
-```
-/reports/filter
-```
-
-Generate PDF using filters.
+`GET /students/inactive` accepts the same optional filters as the active list except `status` / `admissionNumber`: `search`, `gender`, `admissionYear`, `school`, `ageMin`, `ageMax`, plus `page` / `size` / `sort`.
 
 ---
 

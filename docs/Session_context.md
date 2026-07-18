@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 10 — Reports & PDF Export (next)
+Milestone 11 — Dashboard (next)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 10 — Reports & PDF Export
+Milestone 10 — Reports & PDF Export (completed and closed; merged to `main`)
 
 ---
 
@@ -304,9 +304,55 @@ Milestone 10 — Reports & PDF Export
 
 ---
 
+## Milestone 10 — Reports & PDF Export (completed and closed; merged to `main`)
+
+### Backend
+
+* OpenPDF dependency; `oms.reports` config (organization name, max selected/filter limits)
+* Shared `StudentSpecifications.buildListSpecification` used by list + filter export
+* Exact admission lookup via additive `GET /students?admissionNumber=` (case-insensitive)
+* `GET /api/v1/reports/student/{id}`, `POST /api/v1/reports/students`, `POST /api/v1/reports/filter`
+* Filter export `scope`: `ACTIVE` | `ARCHIVED` | `ALL` (ReportService orchestrates active Spec vs deleted native query)
+* `GET /students/inactive` accepts the same optional filters as the active list (except status/admissionNumber)
+* Selected-export max enforced only in `ReportService` (config-driven; no hardcoded `@Size(max=50)`)
+* `StudentPdfRenderer`: org header, student sections, profile photo, inline image docs, PDF doc references, page numbers, generated date/by
+* SLF4J audit logs for report generation (persistent `audit_logs` deferred to M12)
+* Unit tests (`StudentPdfRendererTest`, `ReportServiceTest`) + `ReportExportIntegrationTest`
+
+### Frontend
+
+* `ReportService` + blob download; Reports page (single by admission #, filtered export with scope + match-count preview, link to list for selection)
+* CDK `ExportReportDialog` with filter/selection preview (`+N more` when truncated)
+* Student list + archived list: AG Grid multi-select with cross-page selection map + client max-selected check + Export selected
+* Student profile: Export PDF (active and archived)
+* Component specs for report page, export dialog; ReportService HTTP specs
+
+### Docs
+
+* `docs/07_API_Design.md` Reports section expanded (scope, admissionNumber, inactive filters)
+* `.env.example` report config keys documented
+
+### Milestone 10 QA bug fixes (BUG-001–009, issues #55–#63)
+
+* BUG-001 — Exact `admissionNumber` list param; Reports page no longer uses fragile contains-search `size=5`
+* BUG-002 — Cross-page selection via `Map<id, StudentSummary>` on active and archived lists
+* BUG-003 — Removed hardcoded `@Size(max=50)`; service uses `ReportProperties`
+* BUG-004 / BUG-009 — Filter export supports Active / Archived / All; Status dropdown replaced by Scope
+* BUG-005 — Client max-selected check (`environment.reportsMaxSelected`); server remains authoritative
+* BUG-006 — Added report page, export dialog, and related list/service specs
+* BUG-007 — Filtered export confirms with match count (and blocks over `reportsMaxFilterResults`)
+* BUG-008 — Selection preview appends `+N more` when truncated
+
+### Milestone 10 closure
+
+* Issues #55–#63 addressed on `milestone/report-export`
+* Merged to `main`
+
+---
+
 # Technology Decisions
 
-Unchanged from Milestone 1–9:
+Unchanged from Milestone 1–10:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
@@ -317,7 +363,7 @@ Unchanged from Milestone 1–9:
 
 # Current Objective
 
-Start Milestone 10 — Reports & PDF Export (see `docs/13_DEVELOPMENT_ROADMAP.md`).
+Begin Milestone 11 — Dashboard.
 
 ---
 
@@ -336,15 +382,17 @@ main
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–9 completed and merged to `main`
+* Milestone 5–10 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
+* Milestone 10: PDF docs are references only; image docs embedded inline; report audit is SLF4J until Milestone 12; sync PDF download (no job queue); PDFs not persisted to GCS
+* Milestone 10 filter export uses `scope` (`ACTIVE` | `ARCHIVED` | `ALL`); active path uses `GET /students` predicates; archived path uses the inactive/deleted query path; `GET /students` itself still excludes soft-deleted rows
 
 ---
 
 # Pending Milestones
 
-* Milestone 10 — Reports & PDF Export
+* Milestone 11 — Dashboard
 * … (see roadmap)
 
 ---
@@ -359,9 +407,9 @@ None.
 
 # Next Session Goal
 
-1. Read Milestone 10 scope in `docs/13_DEVELOPMENT_ROADMAP.md` and related docs (API, UI/UX, business rules for reports)
-2. Create `milestone/reports-pdf-export` (or agreed branch name) from `main`
-3. Implement Reports & PDF Export per roadmap Definition of Done
+1. Read Milestone 11 requirements in the development roadmap
+2. Plan Dashboard architecture (stats, charts, recent students, quick actions)
+3. Create / switch to `milestone/dashboard` and begin implementation after approval
 
 ---
 

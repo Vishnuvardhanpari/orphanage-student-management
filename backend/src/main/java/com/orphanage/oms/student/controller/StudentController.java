@@ -63,6 +63,7 @@ public class StudentController {
     @Operation(summary = "List students with pagination, sorting, global search, and filters")
     public PageResponse<StudentSummaryResponse> list(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String admissionNumber,
             @RequestParam(required = false) Gender gender,
             @RequestParam(required = false) StudentStatus status,
             @RequestParam(required = false) Integer admissionYear,
@@ -72,15 +73,30 @@ public class StudentController {
             @PageableDefault(size = 20, sort = "admissionDate", direction = Sort.Direction.DESC)
             Pageable pageable) {
         return PageResponse.from(studentService.list(
-                search, gender, status, admissionYear, school, ageMin, ageMax, pageable));
+                search,
+                admissionNumber,
+                gender,
+                status,
+                admissionYear,
+                school,
+                ageMin,
+                ageMax,
+                pageable));
     }
 
     @GetMapping("/inactive")
-    @Operation(summary = "List soft-deleted (archived) students")
+    @Operation(summary = "List soft-deleted (archived) students with optional filters")
     public PageResponse<StudentSummaryResponse> listInactive(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Gender gender,
+            @RequestParam(required = false) Integer admissionYear,
+            @RequestParam(required = false) String school,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
             @PageableDefault(size = 20, sort = "deletedDate", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return PageResponse.from(studentService.listInactive(pageable));
+        return PageResponse.from(studentService.listInactive(
+                search, gender, admissionYear, school, ageMin, ageMax, pageable));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

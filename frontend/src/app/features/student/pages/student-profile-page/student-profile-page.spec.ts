@@ -13,6 +13,7 @@ import {
   StudentStatus,
 } from '../../models/student.models';
 import { StudentService } from '../../services/student.service';
+import { ReportService } from '../../../report/services/report.service';
 import { StudentProfilePage } from './student-profile-page';
 
 describe('StudentProfilePage', () => {
@@ -122,6 +123,7 @@ describe('StudentProfilePage', () => {
     const authService = {
       isAdmin: () => options?.isAdmin ?? true,
     };
+    const reportService = jasmine.createSpyObj('ReportService', ['exportStudent']);
 
     await TestBed.configureTestingModule({
       imports: [StudentProfilePage],
@@ -139,6 +141,7 @@ describe('StudentProfilePage', () => {
           },
         },
         { provide: StudentService, useValue: studentService },
+        { provide: ReportService, useValue: reportService },
         { provide: NotificationService, useValue: notifications },
         { provide: AuthService, useValue: authService },
         { provide: Dialog, useValue: (dialog = jasmine.createSpyObj('Dialog', ['open'])) },

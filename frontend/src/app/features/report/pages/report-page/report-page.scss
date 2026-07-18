@@ -1,3 +1,61 @@
-:host {
-  display: block;
+@reference "../../../../../styles.css";
+
+.report-page {
+  @apply flex flex-col gap-6;
+}
+
+.report-page__grid {
+  @apply grid gap-4 md:grid-cols-2;
+}
+
+.report-card {
+  @apply rounded-xl border border-surface-border bg-surface-elevated p-5 shadow-sm;
+}
+
+.report-card--wide {
+  @apply md:col-span-2;
+}
+
+.report-card__title {
+  @apply m-0 text-base font-semibold text-surface-fg;
+}
+
+.report-card__text {
+  @apply mt-2 mb-4 text-sm text-surface-muted-fg;
+}
+
+.report-card__link {
+  @apply text-sm font-medium text-primary-600 underline-offset-2 hover:underline;
+}
+
+.report-card__form {
+  @apply flex flex-col gap-3 sm:flex-row sm:items-end;
+}
+
+.report-card__filters {
+  @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.report-card__field {
+  @apply flex flex-col gap-1 text-sm text-surface-muted-fg;
+}
+
+.report-card__field--search {
+  @apply sm:col-span-2 lg:col-span-3;
+}
+
+.report-card__input {
+  @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-surface-fg outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500;
+}
+
+.report-card__input--age {
+  @apply w-full min-w-0;
+}
+
+.report-card__age-range {
+  @apply flex items-center gap-2;
+}
+
+.report-card__actions {
+  @apply flex items-end sm:col-span-2 lg:col-span-3;
 }
