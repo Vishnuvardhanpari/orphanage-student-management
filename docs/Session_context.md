@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 12 — Audit Logging (ready for PR / merge)
+Milestone 13 — UI Polish
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 12 — Audit Logging
+Milestone 13 — UI Polish
 
 ---
 
@@ -394,7 +394,7 @@ Milestone 12 — Audit Logging
 
 ---
 
-## Milestone 12 — Audit Logging (implementation complete on `milestone/audit-logging`; QA #73–#79 closed)
+## Milestone 12 — Audit Logging (completed and closed; merged to `main` via PR #80)
 
 ### Backend
 
@@ -419,40 +419,46 @@ Milestone 12 — Audit Logging
 * `docs/08_UI_UX.md` Audit Logs page + sidebar nav (Admin Only)
 * `docs/06_Database_Design.md` audit_logs append-only trigger note
 
-### Milestone 12 QA bug fixes (BUG-001–007, issues #73–#79) — closed
+### Milestone 12 QA bug fixes (BUG-001–007, issues #73–#79)
 
-* BUG-001 — UI logout attaches Bearer so `AUTH`/`LOGOUT` audit is written (#73) — closed
-* BUG-002 — Audit detail Back uses `app-button` `[routerLink]` (#74) — closed
-* BUG-003 — Audit AG Grid `theme="legacy"` (#75) — closed
-* BUG-004 — Date filters use local timezone day bounds (#76) — closed
-* BUG-005 — List API failures show error empty state + Retry (`SKIP_ERROR_TOAST`) (#79) — closed
-* BUG-006 — Client validates From ≤ To (#77) — closed
-* BUG-007 — Flyway V8 immutability trigger on `audit_logs` (#78) — closed
+* BUG-001 — UI logout attaches Bearer so `AUTH`/`LOGOUT` audit is written (#73)
+* BUG-002 — Audit detail Back uses `app-button` `[routerLink]` (#74)
+* BUG-003 — Audit AG Grid `theme="legacy"` (#75)
+* BUG-004 — Date filters use local timezone day bounds (#76)
+* BUG-005 — List API failures show error empty state + Retry (`SKIP_ERROR_TOAST`) (#79)
+* BUG-006 — Client validates From ≤ To (#77)
+* BUG-007 — Flyway V8 immutability trigger on `audit_logs` (#78)
+
+### Milestone 12 closure
+
+* Issues #73–#79 closed
+* Merged to `main` via PR #80 (`e201ea8`)
 
 ---
 
 # Technology Decisions
 
-Unchanged from Milestone 1–10, plus Milestone 11 dashboard definitions:
+Unchanged from Milestone 1–11, plus Milestone 12 audit definitions:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
 * Active `GET /students` continues to exclude soft-deleted rows
 * Document soft-delete / GCS objects are not cascaded when archiving a student
 * Dashboard: “Left Students” UI = `inactiveStudents` (soft-deleted); new admissions = current UTC calendar month (UI hint: “This month (UTC)”); gender cards active-only; status chart titled **Status Distribution**
+* Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
 
 ---
 
 # Current Objective
 
-Create PR and merge Milestone 12 — Audit Logging to `main`.
+Begin Milestone 13 — UI Polish (planning / architecture review before implementation).
 
 ---
 
 # Current Branch
 
 ```text
-milestone/audit-logging
+main
 ```
 
 ---
@@ -464,7 +470,7 @@ milestone/audit-logging
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–11 completed and merged to `main`
+* Milestone 5–12 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 * Milestone 10: PDF docs are references only; image docs embedded inline; report generation writes persistent `audit_logs` (M12) and keeps SLF4J for ops; sync PDF download (no job queue); PDFs not persisted to GCS
@@ -476,7 +482,10 @@ milestone/audit-logging
 
 # Pending Milestones
 
-* Milestone 12 — Audit Logging (ready for PR / merge)
+* Milestone 13 — UI Polish
+* Milestone 14 — Testing
+* Milestone 15 — Production Deployment
+* Milestone 16 — Production Validation
 * … (see roadmap)
 
 ---
@@ -491,9 +500,9 @@ None.
 
 # Next Session Goal
 
-1. Open PR for `milestone/audit-logging`
-2. Merge Milestone 12 to `main`
-3. Advance session context to the next roadmap milestone
+1. Read Milestone 13 scope in `docs/13_DEVELOPMENT_ROADMAP.md`
+2. Produce UI Polish planning / architecture review
+3. Create `milestone/ui-polish` branch after approval
 
 ---
 
