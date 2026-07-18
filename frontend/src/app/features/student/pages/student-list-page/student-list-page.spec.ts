@@ -10,6 +10,7 @@ import {
   StudentSummary,
 } from '../../models/student.models';
 import { StudentService } from '../../services/student.service';
+import { ReportService } from '../../../report/services/report.service';
 import { StudentListPage, ageFromDateOfBirth } from './student-list-page';
 
 describe('StudentListPage', () => {
@@ -59,6 +60,7 @@ describe('StudentListPage', () => {
       'error',
     ]);
     dialog = jasmine.createSpyObj('Dialog', ['open']);
+    const reportService = jasmine.createSpyObj('ReportService', ['exportSelected']);
     if (response === 'error') {
       studentService.list.and.returnValue(
         throwError(() => ({ error: { message: 'Boom' } })),
@@ -73,6 +75,7 @@ describe('StudentListPage', () => {
       providers: [
         provideRouter([]),
         { provide: StudentService, useValue: studentService },
+        { provide: ReportService, useValue: reportService },
         { provide: NotificationService, useValue: notifications },
         { provide: Dialog, useValue: dialog },
       ],

@@ -23,6 +23,14 @@ import {
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import {
+  ExportReportDialog,
+  ExportReportDialogData,
+} from '../../../report/components/export-report-dialog/export-report-dialog';
+import {
+  ReportService,
+  triggerReportDownload,
+} from '../../../report/services/report.service';
+import {
   ArchiveStudentDialog,
   ArchiveStudentDialogData,
   ArchiveStudentResult,
@@ -50,6 +58,7 @@ export class StudentProfilePage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly studentService = inject(StudentService);
+  private readonly reportService = inject(ReportService);
   private readonly notifications = inject(NotificationService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(Dialog);
@@ -68,6 +77,7 @@ export class StudentProfilePage implements OnInit, OnDestroy {
   readonly photoUnavailable = signal(false);
   readonly downloadingId = signal<string | null>(null);
   readonly actionBusy = signal(false);
+  readonly exporting = signal(false);
   /**
    * Archived state derived from the loaded student's actual status (Milestone
    * 9 QA — BUG-001), not from which route was used to reach this page. Today
@@ -106,6 +116,35 @@ export class StudentProfilePage implements OnInit, OnDestroy {
       return;
     }
     void this.router.navigateByUrl(`${this.paths.students}/${student.id}/edit`);
+  }
+
+  async exportPdf(): Promise<void> {
+    const student = this.student();
+    if (!student || this.exporting()) {
+      return;
+    }
+    const name = [student.firstName, student.lastName].filter(Boolean).join(' ');
+    const ref = this.dialog.open<boolean, ExportReportDialogData>(ExportReportDialog, {
+      data: {
+        title: 'Export student PDF',
+        message: `Generate a PDF report for ${name} (${student.admissionNumber})?`,
+        confirmLabel: 'Generate PDF',
+      },
+    });
+    if ((await firstValueFrom(ref.closed)) !== true) {
+      return;
+    }
+
+    this.exporting.set(true);
+    try {
+      const file = await firstValueFrom(this.reportService.exportStudent(student.id));
+      triggerReportDownload(file, `student-report-${student.admissionNumber}.pdf`);
+      this.notifications.success('PDF report downloaded.');
+    } catch (err) {
+      this.notifications.error(await readBlobErrorMessage(err, 'PDF export failed.'));
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   async archiveStudent(): Promise<void> {
@@ -266,4 +305,25 @@ export class StudentProfilePage implements OnInit, OnDestroy {
       this.objectUrl = null;
     }
   }
+}
+
+async function readBlobErrorMessage(err: unknown, fallback: string): Promise<string> {
+  if (!(err instanceof HttpErrorResponse)) {
+    return fallback;
+  }
+  if (typeof err.error?.message === 'string') {
+    return err.error.message;
+  }
+  if (err.error instanceof Blob) {
+    try {
+      const text = await err.error.text();
+      const json = JSON.parse(text) as { message?: string };
+      if (json.message) {
+        return json.message;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return fallback;
 }

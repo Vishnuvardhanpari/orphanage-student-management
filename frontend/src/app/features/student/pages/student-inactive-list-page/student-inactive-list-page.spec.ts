@@ -12,6 +12,7 @@ import {
   StudentSummary,
 } from '../../models/student.models';
 import { StudentService } from '../../services/student.service';
+import { ReportService } from '../../../report/services/report.service';
 import { StudentInactiveListPage } from './student-inactive-list-page';
 
 // Regression suite for QA BUG-006: the archived (inactive) list page had no
@@ -84,12 +85,14 @@ describe('StudentInactiveListPage', () => {
     );
 
     const authService = { isAdmin: () => options?.isAdmin ?? true };
+    const reportService = jasmine.createSpyObj('ReportService', ['exportSelected']);
 
     await TestBed.configureTestingModule({
       imports: [StudentInactiveListPage],
       providers: [
         provideRouter([]),
         { provide: StudentService, useValue: studentService },
+        { provide: ReportService, useValue: reportService },
         { provide: NotificationService, useValue: notifications },
         { provide: AuthService, useValue: authService },
         { provide: Dialog, useValue: dialog },

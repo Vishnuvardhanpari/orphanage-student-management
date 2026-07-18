@@ -3,6 +3,17 @@
     title="Students"
     subtitle="Search, filter, and manage student records."
   >
+    <app-button
+      type="button"
+      variant="secondary"
+      [disabled]="selectedCount() === 0 || exporting() || selectedCount() > maxSelected"
+      (pressed)="exportSelected()"
+    >
+      {{ exporting() ? 'Exporting…' : 'Export selected' }}
+      @if (selectedCount() > 0 && !exporting()) {
+        ({{ selectedCount() }})
+      }
+    </app-button>
     <app-button variant="secondary" [routerLink]="paths.studentsInactive">
       Archived students
     </app-button>
@@ -117,8 +128,10 @@
         [columnDefs]="columnDefs"
         [defaultColDef]="defaultColDef"
         [context]="gridContext"
+        [rowSelection]="rowSelection"
         [suppressCellFocus]="true"
         (gridReady)="onGridReady($event)"
+        (selectionChanged)="onSelectionChanged($event)"
         (sortChanged)="onSortChanged($event)"
       />
     </div>

@@ -78,6 +78,29 @@ describe('StudentService', () => {
     expect(total).toBe(42);
   });
 
+  it('lists students by exact admissionNumber', () => {
+    service.list({ admissionNumber: 'ADM-100', page: 0, size: 1 }).subscribe();
+
+    const req = httpMock.expectOne(
+      (request) =>
+        request.url === `${environment.apiBaseUrl}/${API_PATHS.students}` &&
+        request.method === 'GET',
+    );
+    expect(req.request.params.get('admissionNumber')).toBe('ADM-100');
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('1');
+    req.flush({
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      size: 1,
+      number: 0,
+      first: true,
+      last: true,
+      empty: true,
+    });
+  });
+
   it('lists students omitting unset filters and applying paging defaults', () => {
     service.list().subscribe();
 

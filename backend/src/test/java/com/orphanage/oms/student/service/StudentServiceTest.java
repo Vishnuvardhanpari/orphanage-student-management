@@ -64,6 +64,8 @@ class StudentServiceTest {
     @Mock
     private StudentRepository studentRepository;
     @Mock
+    private com.orphanage.oms.student.repository.StudentDeletedQuery studentDeletedQuery;
+    @Mock
     private StudentDocumentRepository studentDocumentRepository;
     @Mock
     private StudentMapper studentMapper;
@@ -132,7 +134,7 @@ class StudentServiceTest {
         when(studentMapper.toSummaryResponse(student)).thenReturn(summary);
 
         Page<StudentSummaryResponse> page = studentService.list(
-                "  anita  ", Gender.FEMALE, StudentStatus.ACTIVE, 2024, " Green Valley ", 8, 14, pageable);
+                "  anita  ", null, Gender.FEMALE, StudentStatus.ACTIVE, 2024, " Green Valley ", 8, 14, pageable);
 
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent()).containsExactly(summary);
@@ -145,7 +147,7 @@ class StudentServiceTest {
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         Page<StudentSummaryResponse> page = studentService.list(
-                "   ", null, null, null, "   ", null, null, pageable);
+                "   ", null, null, null, null, "   ", null, null, pageable);
 
         assertThat(page.getTotalElements()).isZero();
         verify(studentRepository).findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable));
@@ -156,7 +158,7 @@ class StudentServiceTest {
         Pageable pageable = PageRequest.of(0, 20, Sort.by("aadhaarNumber"));
 
         assertThatThrownBy(() -> studentService.list(
-                        null, null, null, null, null, null, null, pageable))
+                        null, null, null, null, null, null, null, null, pageable))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Unsupported sort property: aadhaarNumber");
         verify(studentRepository, never())
@@ -174,9 +176,9 @@ class StudentServiceTest {
         when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(standardSort)))
                 .thenReturn(new PageImpl<>(List.of(), standardSort, 0));
 
-        assertThat(studentService.list(null, null, null, null, null, null, null, schoolSort)
+        assertThat(studentService.list(null, null, null, null, null, null, null, null, schoolSort)
                 .getTotalElements()).isZero();
-        assertThat(studentService.list(null, null, null, null, null, null, null, standardSort)
+        assertThat(studentService.list(null, null, null, null, null, null, null, null, standardSort)
                 .getTotalElements()).isZero();
     }
 
@@ -185,11 +187,11 @@ class StudentServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
 
         assertThatThrownBy(() -> studentService.list(
-                        null, null, null, null, null, -1, null, pageable))
+                        null, null, null, null, null, null, -1, null, pageable))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Age filters must not be negative.");
         assertThatThrownBy(() -> studentService.list(
-                        null, null, null, null, null, null, -3, pageable))
+                        null, null, null, null, null, null, null, -3, pageable))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Age filters must not be negative.");
     }
@@ -199,9 +201,22 @@ class StudentServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
 
         assertThatThrownBy(() -> studentService.list(
-                        null, null, null, null, null, 12, 8, pageable))
+                        null, null, null, null, null, null, 12, 8, pageable))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("ageMin must be less than or equal to ageMax.");
+    }
+
+    @Test
+    void listExactAdmissionNumberDelegatesToRepository() {
+        Pageable pageable = PageRequest.of(0, 1);
+        when(studentRepository.findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        assertThat(studentService
+                        .list(null, "ADM-100", null, null, null, null, null, null, pageable)
+                        .getTotalElements())
+                .isZero();
+        verify(studentRepository).findAll(ArgumentMatchers.<Specification<Student>>any(), eq(pageable));
     }
 
     @Test
@@ -702,13 +717,14 @@ class StudentServiceTest {
                 LocalDate.of(2024, 1, 1),
                 Instant.parse("2026-01-05T00:00:00Z"));
         Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "deletedDate"));
-        Pageable nativePageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "deleted_date"));
 
-        when(studentRepository.findAllDeleted(eq(nativePageable)))
-                .thenReturn(new PageImpl<>(List.of(student), nativePageable, 1));
+        when(studentDeletedQuery.findDeletedMatching(
+                        eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(student), pageable, 1));
         when(studentMapper.toSummaryResponse(student)).thenReturn(summary);
 
-        Page<StudentSummaryResponse> page = studentService.listInactive(pageable);
+        Page<StudentSummaryResponse> page =
+                studentService.listInactive(null, null, null, null, null, null, pageable);
 
         assertThat(page.getContent()).containsExactly(summary);
     }
@@ -718,21 +734,33 @@ class StudentServiceTest {
     @Test
     void listInactiveAcceptsSchoolNameSort() {
         Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "schoolName"));
-        Pageable nativePageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "school_name"));
-        when(studentRepository.findAllDeleted(eq(nativePageable)))
-                .thenReturn(new PageImpl<>(List.of(), nativePageable, 0));
+        when(studentDeletedQuery.findDeletedMatching(
+                        eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        assertThat(studentService.listInactive(pageable).getTotalElements()).isZero();
+        assertThat(studentService
+                        .listInactive(null, null, null, null, null, null, pageable)
+                        .getTotalElements())
+                .isZero();
     }
 
     @Test
     void listInactiveRejectsUnsupportedSort() {
         Pageable pageable = PageRequest.of(0, 20, Sort.by("aadhaarNumber"));
 
-        assertThatThrownBy(() -> studentService.listInactive(pageable))
+        assertThatThrownBy(
+                        () -> studentService.listInactive(null, null, null, null, null, null, pageable))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Unsupported sort property: aadhaarNumber");
-        verify(studentRepository, never()).findAllDeleted(any(Pageable.class));
+        verify(studentDeletedQuery, never())
+                .findDeletedMatching(
+                        org.mockito.ArgumentMatchers.<String>any(),
+                        org.mockito.ArgumentMatchers.nullable(Gender.class),
+                        org.mockito.ArgumentMatchers.nullable(Integer.class),
+                        org.mockito.ArgumentMatchers.<String>any(),
+                        org.mockito.ArgumentMatchers.nullable(LocalDate.class),
+                        org.mockito.ArgumentMatchers.nullable(LocalDate.class),
+                        any(Pageable.class));
     }
 
     @Test

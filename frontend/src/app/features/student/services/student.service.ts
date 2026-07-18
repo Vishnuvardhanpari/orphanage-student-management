@@ -19,6 +19,7 @@ import {
   StudentCreatedResponse,
   StudentDetail,
   StudentDocumentMeta,
+  StudentInactiveListParams,
   StudentListParams,
   StudentSummary,
   UpdateStudentRequest,
@@ -51,6 +52,9 @@ export class StudentService {
     let httpParams = new HttpParams();
     if (params.search) {
       httpParams = httpParams.set('search', params.search);
+    }
+    if (params.admissionNumber) {
+      httpParams = httpParams.set('admissionNumber', params.admissionNumber);
     }
     if (params.gender) {
       httpParams = httpParams.set('gender', params.gender);
@@ -214,12 +218,30 @@ export class StudentService {
   }
 
   /**
-   * Paginated soft-deleted (archived) students.
+   * Paginated soft-deleted (archived) students with optional filters.
    */
   listInactive(
-    params: { page?: number; size?: number; sort?: string } = {},
+    params: StudentInactiveListParams = {},
   ): Observable<PageResponse<StudentSummary>> {
     let httpParams = new HttpParams();
+    if (params.search) {
+      httpParams = httpParams.set('search', params.search);
+    }
+    if (params.gender) {
+      httpParams = httpParams.set('gender', params.gender);
+    }
+    if (params.admissionYear !== undefined && params.admissionYear !== null) {
+      httpParams = httpParams.set('admissionYear', String(params.admissionYear));
+    }
+    if (params.school) {
+      httpParams = httpParams.set('school', params.school);
+    }
+    if (params.ageMin !== undefined && params.ageMin !== null) {
+      httpParams = httpParams.set('ageMin', String(params.ageMin));
+    }
+    if (params.ageMax !== undefined && params.ageMax !== null) {
+      httpParams = httpParams.set('ageMax', String(params.ageMax));
+    }
     httpParams = httpParams.set('page', String(params.page ?? 0));
     httpParams = httpParams.set('size', String(params.size ?? 20));
     if (params.sort) {

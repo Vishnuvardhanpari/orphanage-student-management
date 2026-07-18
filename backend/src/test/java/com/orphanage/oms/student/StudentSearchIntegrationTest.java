@@ -216,6 +216,18 @@ class StudentSearchIntegrationTest {
     }
 
     @Test
+    void exactAdmissionNumberMatchIsCaseInsensitive() throws Exception {
+        persistStudent(b -> b.admissionNumber("ADM-S-080").firstName("Exact"));
+        persistStudent(b -> b.admissionNumber("ADM-S-081").firstName("Other"));
+
+        mockMvc.perform(authorized("/api/v1/students?admissionNumber=adm-s-080"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].admissionNumber").value("ADM-S-080"))
+                .andExpect(jsonPath("$.content[0].firstName").value("Exact"));
+    }
+
+    @Test
     void unsupportedSortPropertyReturns400() throws Exception {
         mockMvc.perform(authorized("/api/v1/students?sort=aadhaarNumber,asc"))
                 .andExpect(status().isBadRequest())
