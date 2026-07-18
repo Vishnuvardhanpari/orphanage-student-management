@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 12 — Audit Logging (next)
+Milestone 12 — Audit Logging (ready for PR / merge)
 
 **Current Sprint**
 
@@ -394,6 +394,43 @@ Milestone 12 — Audit Logging
 
 ---
 
+## Milestone 12 — Audit Logging (implementation complete on `milestone/audit-logging`; QA #73–#79 closed)
+
+### Backend
+
+* Flyway `V7__create_audit_logs.sql`: `audit_logs` (module, action, entity_id, description, username, ip_address, created_date) + indexes
+* Flyway `V8__audit_logs_immutability.sql`: `BEFORE UPDATE OR DELETE` trigger (append-only defense-in-depth; QA BUG-007)
+* `com.orphanage.oms.audit` vertical slice: entity, enums, repository + Specifications, MapStruct mapper, `AuditService`, ADMIN `AuditController`
+* Shared helpers: `SecurityUtils`, `ClientIpResolver` (AuthController IP extraction reused)
+* Writers: login/logout (Auth), student create/update/delete/restore + document upload/replace (Student), report single/selected/filter (Report)
+* Security: `/api/v1/audit/**` `hasRole("ADMIN")` + class `@PreAuthorize`
+* Unit (`AuditServiceTest`) + integration (`AuditLoggingIntegrationTest`)
+
+### Frontend
+
+* ADMIN Audit Logs list (`/audit`) — AG Grid (`theme="legacy"`), filters (search/module/action/username/date range with local-day Instants), paging/sort; detail (`/audit/:id`) with `app-button` `[routerLink]` Back
+* List owns error UX (`loadFailed` + Retry + `SKIP_ERROR_TOAST`); client validates From ≤ To
+* Auth interceptor attaches Bearer on logout (no refresh-on-401) so UI logout writes `AUTH`/`LOGOUT`
+* Sidebar “Audit Logs” (`adminOnly`); `roleGuard`; `AuditService` + specs
+
+### Docs
+
+* `docs/07_API_Design.md` Audit Logs section (consolidated list; no `/audit/search`); logout Bearer audit note; V8 immutability
+* `docs/08_UI_UX.md` Audit Logs page + sidebar nav (Admin Only)
+* `docs/06_Database_Design.md` audit_logs append-only trigger note
+
+### Milestone 12 QA bug fixes (BUG-001–007, issues #73–#79) — closed
+
+* BUG-001 — UI logout attaches Bearer so `AUTH`/`LOGOUT` audit is written (#73) — closed
+* BUG-002 — Audit detail Back uses `app-button` `[routerLink]` (#74) — closed
+* BUG-003 — Audit AG Grid `theme="legacy"` (#75) — closed
+* BUG-004 — Date filters use local timezone day bounds (#76) — closed
+* BUG-005 — List API failures show error empty state + Retry (`SKIP_ERROR_TOAST`) (#79) — closed
+* BUG-006 — Client validates From ≤ To (#77) — closed
+* BUG-007 — Flyway V8 immutability trigger on `audit_logs` (#78) — closed
+
+---
+
 # Technology Decisions
 
 Unchanged from Milestone 1–10, plus Milestone 11 dashboard definitions:
@@ -408,14 +445,14 @@ Unchanged from Milestone 1–10, plus Milestone 11 dashboard definitions:
 
 # Current Objective
 
-Begin Milestone 12 — Audit Logging (planning / architecture review before implementation).
+Create PR and merge Milestone 12 — Audit Logging to `main`.
 
 ---
 
 # Current Branch
 
 ```text
-main
+milestone/audit-logging
 ```
 
 ---
@@ -430,15 +467,16 @@ main
 * Milestone 5–11 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
-* Milestone 10: PDF docs are references only; image docs embedded inline; report audit is SLF4J until Milestone 12; sync PDF download (no job queue); PDFs not persisted to GCS
+* Milestone 10: PDF docs are references only; image docs embedded inline; report generation writes persistent `audit_logs` (M12) and keeps SLF4J for ops; sync PDF download (no job queue); PDFs not persisted to GCS
 * Milestone 10 filter export uses `scope` (`ACTIVE` | `ARCHIVED` | `ALL`); active path uses `GET /students` predicates; archived path uses the inactive/deleted query path; `GET /students` itself still excludes soft-deleted rows
 * Milestone 11: dashboard recent rows expose `firstName`/`lastName` (not a computed `fullName`); monthly admissions use portable `EXTRACT(YEAR/MONTH)` for H2 + PostgreSQL compatibility; New Admissions window is UTC (UI discloses it)
+* Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
 
 ---
 
 # Pending Milestones
 
-* Milestone 12 — Audit Logging
+* Milestone 12 — Audit Logging (ready for PR / merge)
 * … (see roadmap)
 
 ---
@@ -453,9 +491,9 @@ None.
 
 # Next Session Goal
 
-1. Read Milestone 12 scope in `docs/13_DEVELOPMENT_ROADMAP.md`
-2. Planning + Architecture Review for Audit Logging
-3. Create/switch to `milestone/audit-logging` after approval
+1. Open PR for `milestone/audit-logging`
+2. Merge Milestone 12 to `main`
+3. Advance session context to the next roadmap milestone
 
 ---
 

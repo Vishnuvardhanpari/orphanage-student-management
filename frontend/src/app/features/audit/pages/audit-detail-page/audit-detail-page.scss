@@ -1,0 +1,33 @@
+@reference "../../../../../styles.css";
+
+.audit-detail {
+  @apply flex flex-col gap-4;
+}
+
+.audit-detail__loading {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.audit-detail__card {
+  @apply rounded-xl border border-surface-border bg-surface-elevated p-6;
+}
+
+.audit-detail__grid {
+  @apply m-0 grid gap-4 sm:grid-cols-2;
+
+  dt {
+    @apply text-xs font-medium uppercase tracking-wide text-surface-muted-fg;
+  }
+
+  dd {
+    @apply mt-1 text-sm text-surface-fg;
+  }
+}
+
+.audit-detail__full {
+  @apply sm:col-span-2;
+}
+
+.audit-detail__mono {
+  @apply font-mono text-xs break-all;
+}

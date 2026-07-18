@@ -2,7 +2,7 @@ package com.orphanage.oms.user.service;
 
 import com.orphanage.oms.auth.service.RefreshTokenService;
 import com.orphanage.oms.exception.ApiException;
-import com.orphanage.oms.security.UserPrincipal;
+import com.orphanage.oms.security.SecurityUtils;
 import com.orphanage.oms.user.dto.CreateUserRequest;
 import com.orphanage.oms.user.dto.ResetPasswordRequest;
 import com.orphanage.oms.user.dto.UpdateUserRequest;
@@ -20,8 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -236,10 +234,6 @@ public class UserService {
     }
 
     private UUID currentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized", "Authentication required.");
-        }
-        return principal.getId();
+        return SecurityUtils.requireUserId();
     }
 }

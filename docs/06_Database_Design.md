@@ -162,6 +162,8 @@ Fields
 * ip_address
 * created_date
 
+Append-only: Flyway `V8__audit_logs_immutability.sql` installs a `BEFORE UPDATE OR DELETE` row trigger that raises an exception. Application APIs never mutate audit rows.
+
 ---
 
 # Relationships

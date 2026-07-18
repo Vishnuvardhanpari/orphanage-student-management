@@ -1,11 +1,14 @@
 package com.orphanage.oms.report.service;
 
+import com.orphanage.oms.audit.enums.AuditAction;
+import com.orphanage.oms.audit.enums.AuditModule;
+import com.orphanage.oms.audit.service.AuditService;
 import com.orphanage.oms.exception.ApiException;
 import com.orphanage.oms.report.config.ReportProperties;
 import com.orphanage.oms.report.dto.GeneratedReport;
 import com.orphanage.oms.report.dto.ReportFilterRequest;
 import com.orphanage.oms.report.dto.ReportStudentScope;
-import com.orphanage.oms.security.UserPrincipal;
+import com.orphanage.oms.security.SecurityUtils;
 import com.orphanage.oms.student.entity.Student;
 import com.orphanage.oms.student.entity.StudentDocument;
 import com.orphanage.oms.student.repository.StudentDeletedQuery;
@@ -30,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,21 +54,24 @@ public class ReportService {
     private final StudentDocumentRepository studentDocumentRepository;
     private final StudentPdfRenderer studentPdfRenderer;
     private final ReportProperties reportProperties;
+    private final AuditService auditService;
 
     public ReportService(
             StudentRepository studentRepository,
             StudentDeletedQuery studentDeletedQuery,
             StudentDocumentRepository studentDocumentRepository,
             StudentPdfRenderer studentPdfRenderer,
-            ReportProperties reportProperties) {
+            ReportProperties reportProperties,
+            AuditService auditService) {
         this.studentRepository = studentRepository;
         this.studentDeletedQuery = studentDeletedQuery;
         this.studentDocumentRepository = studentDocumentRepository;
         this.studentPdfRenderer = studentPdfRenderer;
         this.reportProperties = reportProperties;
+        this.auditService = auditService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GeneratedReport exportSingleStudent(UUID studentId) {
         Student student = studentRepository
                 .findIncludingDeletedById(studentId)
@@ -82,12 +86,17 @@ public class ReportService {
                 "Report generated type=SINGLE studentCount=1 studentId={} generatedBy={}",
                 studentId,
                 generatedBy);
+        auditService.record(
+                AuditModule.REPORT,
+                AuditAction.GENERATED,
+                studentId,
+                "Report generated type=SINGLE studentCount=1");
 
         String fileName = "student-report-" + sanitizeFilePart(student.getAdmissionNumber()) + ".pdf";
         return new GeneratedReport(pdf, fileName);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GeneratedReport exportSelectedStudents(List<UUID> studentIds) {
         if (studentIds == null || studentIds.isEmpty()) {
             throw new ApiException(
@@ -124,11 +133,16 @@ public class ReportService {
                 "Report generated type=SELECTED studentCount={} generatedBy={}",
                 students.size(),
                 generatedBy);
+        auditService.record(
+                AuditModule.REPORT,
+                AuditAction.GENERATED,
+                null,
+                "Report generated type=SELECTED studentCount=" + students.size());
 
         return new GeneratedReport(pdf, bulkFileName(generatedAt));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GeneratedReport exportFilteredStudents(ReportFilterRequest request) {
         ReportFilterRequest filters = request != null
                 ? request
@@ -163,12 +177,21 @@ public class ReportService {
         Instant generatedAt = Instant.now();
         byte[] pdf = renderStudents(students, generatedBy, generatedAt);
 
+        String filterSummary = summarizeFilters(scope, filters);
         log.info(
                 "Report generated type=FILTER scope={} studentCount={} generatedBy={} filters={}",
                 scope,
                 students.size(),
                 generatedBy,
-                summarizeFilters(scope, filters));
+                filterSummary);
+        auditService.record(
+                AuditModule.REPORT,
+                AuditAction.GENERATED,
+                null,
+                "Report generated type=FILTER studentCount="
+                        + students.size()
+                        + " filters="
+                        + filterSummary);
 
         return new GeneratedReport(pdf, bulkFileName(generatedAt));
     }
@@ -306,10 +329,6 @@ public class ReportService {
     }
 
     private String currentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized", "Authentication required.");
-        }
-        return principal.getUsername();
+        return SecurityUtils.requireUsername();
     }
 }

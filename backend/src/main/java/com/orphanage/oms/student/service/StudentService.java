@@ -1,7 +1,10 @@
 package com.orphanage.oms.student.service;
 
+import com.orphanage.oms.audit.enums.AuditAction;
+import com.orphanage.oms.audit.enums.AuditModule;
+import com.orphanage.oms.audit.service.AuditService;
 import com.orphanage.oms.exception.ApiException;
-import com.orphanage.oms.security.UserPrincipal;
+import com.orphanage.oms.security.SecurityUtils;
 import com.orphanage.oms.storage.StorageService;
 import com.orphanage.oms.student.dto.CreateStudentRequest;
 import com.orphanage.oms.student.dto.SoftDeleteStudentRequest;
@@ -37,8 +40,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,6 +83,7 @@ public class StudentService {
     private final StudentMapper studentMapper;
     private final StudentFileValidator fileValidator;
     private final StorageService storageService;
+    private final AuditService auditService;
 
     public StudentService(
             StudentRepository studentRepository,
@@ -89,13 +91,15 @@ public class StudentService {
             StudentDocumentRepository studentDocumentRepository,
             StudentMapper studentMapper,
             StudentFileValidator fileValidator,
-            StorageService storageService) {
+            StorageService storageService,
+            AuditService auditService) {
         this.studentRepository = studentRepository;
         this.studentDeletedQuery = studentDeletedQuery;
         this.studentDocumentRepository = studentDocumentRepository;
         this.studentMapper = studentMapper;
         this.fileValidator = fileValidator;
         this.storageService = storageService;
+        this.auditService = auditService;
     }
 
     /**
@@ -343,7 +347,15 @@ public class StudentService {
                         .uploadedBy(actorId)
                         .deleted(false)
                         .build();
-                studentDocumentRepository.save(metadata);
+                StudentDocument savedDoc = studentDocumentRepository.save(metadata);
+                auditService.record(
+                        AuditModule.DOCUMENT,
+                        AuditAction.UPLOADED,
+                        savedDoc.getId(),
+                        "Document uploaded during student registration studentId="
+                                + saved.getId()
+                                + " type="
+                                + documentType);
             }
         } catch (RuntimeException ex) {
             compensateStoredFiles(storedPaths);
@@ -355,6 +367,11 @@ public class StudentService {
                 saved.getId(),
                 saved.getAdmissionNumber(),
                 actorId);
+        auditService.record(
+                AuditModule.STUDENT,
+                AuditAction.CREATED,
+                saved.getId(),
+                "Student created admissionNumber=" + saved.getAdmissionNumber());
         return studentMapper.toCreatedResponse(saved);
     }
 
@@ -404,6 +421,11 @@ public class StudentService {
 
         Student saved = studentRepository.save(student);
         log.info("Student updated id={} by={}", saved.getId(), actorId);
+        auditService.record(
+                AuditModule.STUDENT,
+                AuditAction.UPDATED,
+                saved.getId(),
+                "Student profile updated");
         return studentMapper.toDetailResponse(saved);
     }
 
@@ -517,6 +539,11 @@ public class StudentService {
                         .build();
                 StudentDocument saved = studentDocumentRepository.save(metadata);
                 created.add(studentMapper.toDocumentResponse(saved));
+                auditService.record(
+                        AuditModule.DOCUMENT,
+                        AuditAction.UPLOADED,
+                        saved.getId(),
+                        "Document uploaded studentId=" + studentId + " type=" + documentType);
             }
 
             student.setUpdatedBy(actorId);
@@ -606,6 +633,11 @@ public class StudentService {
                     studentId,
                     documentId,
                     actorId);
+            auditService.record(
+                    AuditModule.DOCUMENT,
+                    AuditAction.REPLACED,
+                    documentId,
+                    "Document replaced studentId=" + studentId + " type=" + documentType);
             return studentMapper.toDocumentResponse(saved);
         } catch (RuntimeException ex) {
             compensateStoredFiles(storedPaths);
@@ -740,6 +772,12 @@ public class StudentService {
         student.setUpdatedBy(actorId);
         studentRepository.save(student);
         log.info("Student deleted id={} by={} exitDateRecorded={}", id, actorId, exitDate != null);
+        auditService.record(
+                AuditModule.STUDENT,
+                AuditAction.DELETED,
+                id,
+                "Student archived"
+                        + (exitDate != null ? " exitDate=" + exitDate : ""));
     }
 
     /**
@@ -762,15 +800,16 @@ public class StudentService {
         student.setUpdatedBy(actorId);
         Student saved = studentRepository.save(student);
         log.info("Student restored id={} by={}", id, actorId);
+        auditService.record(
+                AuditModule.STUDENT,
+                AuditAction.RESTORED,
+                id,
+                "Student restored from archive");
         return studentMapper.toDetailResponse(saved);
     }
 
     private UUID currentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized", "Authentication required.");
-        }
-        return principal.getId();
+        return SecurityUtils.requireUserId();
     }
 
     /** Active (non-deleted) student only — used for mutations and soft delete. */

@@ -1,0 +1,46 @@
+<section class="audit-detail">
+  <app-page-header title="Audit event" subtitle="Immutable record details.">
+    <app-button variant="secondary" [routerLink]="paths.audit">Back to list</app-button>
+  </app-page-header>
+
+  @if (loading()) {
+    <p class="audit-detail__loading">Loading…</p>
+  } @else if (log(); as event) {
+    <div class="audit-detail__card">
+      <dl class="audit-detail__grid">
+        <div>
+          <dt>When</dt>
+          <dd>{{ event.createdDate | date: 'medium' }}</dd>
+        </div>
+        <div>
+          <dt>Username</dt>
+          <dd>{{ event.username }}</dd>
+        </div>
+        <div>
+          <dt>Module</dt>
+          <dd>{{ event.module }}</dd>
+        </div>
+        <div>
+          <dt>Action</dt>
+          <dd>{{ event.action }}</dd>
+        </div>
+        <div>
+          <dt>Entity ID</dt>
+          <dd>{{ event.entityId || '—' }}</dd>
+        </div>
+        <div>
+          <dt>IP address</dt>
+          <dd>{{ event.ipAddress || '—' }}</dd>
+        </div>
+        <div class="audit-detail__full">
+          <dt>Description</dt>
+          <dd>{{ event.description }}</dd>
+        </div>
+        <div class="audit-detail__full">
+          <dt>Event ID</dt>
+          <dd class="audit-detail__mono">{{ event.id }}</dd>
+        </div>
+      </dl>
+    </div>
+  }
+</section>

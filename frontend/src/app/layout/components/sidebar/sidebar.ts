@@ -7,6 +7,7 @@ import {
   FileText,
   UserCog,
   Archive,
+  ScrollText,
 } from 'lucide-angular';
 import { APP_PATHS } from '../../../core/constants/routes';
 import { AuthService } from '../../../features/auth/services/auth.service';
@@ -37,6 +38,7 @@ export class Sidebar {
     { label: 'Archived Students', path: APP_PATHS.studentsInactive, icon: Archive },
     { label: 'Reports', path: APP_PATHS.reports, icon: FileText },
     { label: 'Users', path: APP_PATHS.users, icon: UserCog, adminOnly: true },
+    { label: 'Audit Logs', path: APP_PATHS.audit, icon: ScrollText, adminOnly: true },
   ];
 
   protected readonly navItems = computed(() =>

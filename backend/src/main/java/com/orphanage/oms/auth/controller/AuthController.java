@@ -7,6 +7,7 @@ import com.orphanage.oms.auth.dto.LogoutRequest;
 import com.orphanage.oms.auth.dto.RefreshTokenRequest;
 import com.orphanage.oms.auth.dto.UserResponse;
 import com.orphanage.oms.auth.service.AuthenticationService;
+import com.orphanage.oms.util.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,34 +30,41 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthenticationService authenticationService;
+    private final ClientIpResolver clientIpResolver;
 
-    public AuthController(AuthenticationService authenticationService) {
+    public AuthController(AuthenticationService authenticationService, ClientIpResolver clientIpResolver) {
         this.authenticationService = authenticationService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @PostMapping("/login")
     @Operation(summary = "Login with username and password")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        return authenticationService.login(request, clientIp(httpRequest), userAgent(httpRequest));
+        return authenticationService.login(
+                request, clientIpResolver.resolve(httpRequest), userAgent(httpRequest));
     }
 
     @PostMapping("/google")
     @Operation(summary = "Login with Google ID token")
     public AuthResponse google(@Valid @RequestBody GoogleLoginRequest request, HttpServletRequest httpRequest) {
-        return authenticationService.loginWithGoogle(request, clientIp(httpRequest), userAgent(httpRequest));
+        return authenticationService.loginWithGoogle(
+                request, clientIpResolver.resolve(httpRequest), userAgent(httpRequest));
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "Rotate refresh token and issue a new access token")
     public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request, HttpServletRequest httpRequest) {
-        return authenticationService.refresh(request, clientIp(httpRequest), userAgent(httpRequest));
+        return authenticationService.refresh(
+                request, clientIpResolver.resolve(httpRequest), userAgent(httpRequest));
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Revoke refresh token(s) and end the session")
     public ResponseEntity<Void> logout(
-            @RequestBody(required = false) LogoutRequest request) {
-        authenticationService.logout(request != null ? request : new LogoutRequest(null));
+            @RequestBody(required = false) LogoutRequest request, HttpServletRequest httpRequest) {
+        authenticationService.logout(
+                request != null ? request : new LogoutRequest(null),
+                clientIpResolver.resolve(httpRequest));
         return ResponseEntity.noContent().build();
     }
 
@@ -64,14 +72,6 @@ public class AuthController {
     @Operation(summary = "Get the current authenticated user", security = @SecurityRequirement(name = "bearerAuth"))
     public UserResponse me() {
         return authenticationService.me();
-    }
-
-    private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private String userAgent(HttpServletRequest request) {
