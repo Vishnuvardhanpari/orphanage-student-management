@@ -1,3 +1,101 @@
-:host {
-  display: block;
+@reference "../../../../../styles.css";
+
+.dashboard-page {
+  @apply flex flex-col gap-8;
+}
+
+.dashboard-page__section-title {
+  @apply m-0 mb-3 text-base font-semibold text-surface-fg;
+}
+
+.dashboard-page__stats {
+  @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-3;
+}
+
+.stat-card {
+  @apply rounded-xl border border-surface-border bg-surface-elevated p-4 shadow-sm;
+}
+
+.stat-card--skeleton,
+.chart-panel__skeleton,
+.recent-panel__skeleton {
+  @apply animate-pulse rounded-lg bg-surface-muted/40;
+}
+
+.stat-card--skeleton {
+  @apply h-24;
+}
+
+.stat-card__label {
+  @apply m-0 text-sm text-surface-muted-fg;
+}
+
+.stat-card__value {
+  @apply m-0 mt-1 text-3xl font-semibold tracking-tight text-surface-fg;
+}
+
+.stat-card__hint {
+  @apply m-0 mt-1 text-xs text-surface-muted-fg;
+}
+
+.dashboard-page__action-row {
+  @apply flex flex-wrap gap-2;
+}
+
+.dashboard-page__charts {
+  @apply grid gap-4 lg:grid-cols-2;
+}
+
+.chart-panel,
+.recent-panel {
+  @apply rounded-xl border border-surface-border bg-surface-elevated p-4 shadow-sm;
+}
+
+.chart-panel--wide {
+  @apply lg:col-span-2;
+}
+
+.chart-panel__chart {
+  @apply h-64 w-full;
+}
+
+.chart-panel__chart--bar {
+  @apply h-72;
+}
+
+.chart-panel__skeleton {
+  @apply h-64;
+}
+
+.dashboard-page__recent {
+  @apply grid gap-4 lg:grid-cols-2;
+}
+
+.recent-panel__list {
+  @apply m-0 flex list-none flex-col gap-2 p-0;
+}
+
+.recent-panel__link {
+  @apply flex flex-col gap-0.5 rounded-lg px-2 py-2 text-sm hover:bg-surface-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500;
+}
+
+.recent-panel__name {
+  @apply font-medium text-surface-fg;
+}
+
+.recent-panel__meta,
+.recent-panel__empty {
+  @apply text-xs text-surface-muted-fg;
+}
+
+.recent-panel__empty {
+  @apply m-0 text-sm;
+}
+
+.recent-panel__skeleton {
+  @apply h-32;
+}
+
+.sr-only {
+  @apply sr-only;
 }
