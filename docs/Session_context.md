@@ -346,7 +346,7 @@ Milestone 10 — Reports & PDF Export (completed and closed; merged to `main`)
 ### Milestone 10 closure
 
 * Issues #55–#63 addressed on `milestone/report-export`
-* Merged to `main`
+* Merged to `main` via PR #64 (`cd23119`)
 
 ---
 
