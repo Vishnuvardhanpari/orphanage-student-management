@@ -390,7 +390,7 @@ Milestone 12 — Audit Logging
 ### Milestone 11 closure
 
 * Issues #65–#71 closed
-* Merged to `main` via PR (see git history / GitHub)
+* Merged to `main` via PR #72 (`215c1b9`)
 
 ---
 
