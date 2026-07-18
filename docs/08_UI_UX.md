@@ -102,11 +102,33 @@ Cards
 * Total Students
 * Active Students
 * Left Students
-* Recent Admissions
+* New Admissions (current UTC calendar month)
+* Male Students (active roster)
+* Female Students (active roster)
 
-Charts (Future)
+Charts
+
+* Gender distribution
+* Status Distribution (Active vs Left)
+* Monthly admissions (last 12 UTC months)
+
+Recent activity
+
+* Recent admissions
+* Recent updates
 
 Quick Actions
+
+* Register student
+* Students list
+* Reports
+* Archived students
+
+Loading & errors
+
+* Skeleton placeholders while loading
+* Header Refresh control
+* Error empty state with Retry (page owns error UX; no multi-toast spam)
 
 ---
 
@@ -243,8 +265,7 @@ High Contrast
 
 # Future UI Improvements
 
-* Dark Mode
+* Dark Mode refinements
 * Multi-language Support
-* Dashboard Charts
 * Drag-and-drop file upload
 * Mobile-friendly optimized views

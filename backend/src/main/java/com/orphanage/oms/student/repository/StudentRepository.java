@@ -1,6 +1,10 @@
 package com.orphanage.oms.student.repository;
 
 import com.orphanage.oms.student.entity.Student;
+import com.orphanage.oms.student.enums.Gender;
+import com.orphanage.oms.student.enums.StudentStatus;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -93,4 +97,89 @@ public interface StudentRepository
             nativeQuery = true)
     long countByAadhaarNumberIncludingDeletedExcludingId(
             @Param("aadhaarNumber") String aadhaarNumber, @Param("excludeId") UUID excludeId);
+
+    /**
+     * Active (non-deleted) students with the given status.
+     */
+    long countByStatus(StudentStatus status);
+
+    /**
+     * Active (non-deleted) students with the given gender.
+     */
+    long countByGender(Gender gender);
+
+    /**
+     * Soft-deleted student count (bypasses {@code @SQLRestriction}).
+     */
+    @Query(
+            value = """
+                    SELECT COUNT(1) FROM students
+                    WHERE deleted = true
+                    """,
+            nativeQuery = true)
+    long countDeleted();
+
+    /**
+     * Admissions in {@code [startInclusive, endExclusive)} including soft-deleted rows.
+     */
+    @Query(
+            value = """
+                    SELECT COUNT(1) FROM students
+                    WHERE admission_date >= :startInclusive
+                      AND admission_date < :endExclusive
+                    """,
+            nativeQuery = true)
+    long countAdmissionsBetweenIncludingDeleted(
+            @Param("startInclusive") LocalDate startInclusive,
+            @Param("endExclusive") LocalDate endExclusive);
+
+    /**
+     * Gender breakdown of active (non-deleted) students.
+     *
+     * <p>Each row is {@code [gender, count]}.
+     */
+    @Query(
+            """
+            SELECT s.gender, COUNT(s)
+            FROM Student s
+            GROUP BY s.gender
+            """)
+    List<Object[]> countGroupedByGender();
+
+    /**
+     * Status breakdown of all retained students (bypasses {@code @SQLRestriction}).
+     *
+     * <p>Each row is {@code [status, count]}.
+     */
+    @Query(
+            value = """
+                    SELECT status, COUNT(1)
+                    FROM students
+                    GROUP BY status
+                    """,
+            nativeQuery = true)
+    List<Object[]> countGroupedByStatusIncludingDeleted();
+
+    /**
+     * Monthly admission counts in {@code [startInclusive, endExclusive)} including soft-deleted.
+     *
+     * <p>Each row is {@code [year, month, count]} (numeric year/month).
+     */
+    @Query(
+            value = """
+                    SELECT EXTRACT(YEAR FROM admission_date),
+                           EXTRACT(MONTH FROM admission_date),
+                           COUNT(1)
+                    FROM students
+                    WHERE admission_date >= :startInclusive
+                      AND admission_date < :endExclusive
+                    GROUP BY EXTRACT(YEAR FROM admission_date),
+                             EXTRACT(MONTH FROM admission_date)
+                    ORDER BY EXTRACT(YEAR FROM admission_date),
+                             EXTRACT(MONTH FROM admission_date)
+                    """,
+            nativeQuery = true)
+    List<Object[]> countAdmissionsByMonthIncludingDeleted(
+            @Param("startInclusive") LocalDate startInclusive,
+            @Param("endExclusive") LocalDate endExclusive);
 }

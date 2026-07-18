@@ -624,6 +624,110 @@ Milestone 6–7 endpoints:
 
 ---
 
+# Dashboard
+
+ADMIN and STAFF (`hasAnyRole('ADMIN', 'STAFF')`). JWT required. No schema / Flyway changes.
+
+Read-only aggregate endpoints for the executive dashboard. Soft-deleted students are included only where noted.
+
+## Summary
+
+`GET /dashboard/summary`
+
+Response `200`:
+
+```json
+{
+  "totalStudents": 120,
+  "activeStudents": 100,
+  "inactiveStudents": 20,
+  "newAdmissions": 5,
+  "maleStudents": 48,
+  "femaleStudents": 50,
+  "recentAdmissions": [
+    {
+      "id": "uuid",
+      "firstName": "Anita",
+      "lastName": "Rao",
+      "admissionNumber": "ADM-2026-001",
+      "admissionDate": "2026-07-01",
+      "updatedDate": "2026-07-01T10:00:00Z"
+    }
+  ],
+  "recentUpdates": [
+    {
+      "id": "uuid",
+      "firstName": "Anita",
+      "lastName": "Rao",
+      "admissionNumber": "ADM-2026-001",
+      "admissionDate": "2026-07-01",
+      "updatedDate": "2026-07-10T12:00:00Z"
+    }
+  ]
+}
+```
+
+Definitions:
+
+* `activeStudents` — `deleted = false` and `status = ACTIVE`
+* `inactiveStudents` — soft-deleted (`deleted = true`); UI label **Left Students**
+* `totalStudents` — active + inactive
+* `newAdmissions` — students whose `admission_date` falls in the current calendar month (UTC), including later-archived rows
+* `maleStudents` / `femaleStudents` — active roster only (`OTHER` is not a summary card)
+* `recentAdmissions` — up to 5 active students ordered by `admissionDate` descending
+* `recentUpdates` — up to 5 active students ordered by `updatedDate` descending
+
+Empty database returns zeros and empty recent lists (not an error).
+
+## Admissions trend
+
+`GET /dashboard/admissions`
+
+Response `200` — always 12 months (oldest → newest), zero-filled gaps:
+
+```json
+[
+  { "yearMonth": "2025-08", "count": 2 },
+  { "yearMonth": "2025-09", "count": 0 }
+]
+```
+
+* Counts by `admission_date` month for the last 12 calendar months ending in the current month (UTC)
+* Includes soft-deleted students (admission is historical)
+
+## Gender distribution
+
+`GET /dashboard/gender`
+
+Response `200` — one entry per `Gender` enum value (zeros included):
+
+```json
+[
+  { "gender": "MALE", "count": 48 },
+  { "gender": "FEMALE", "count": 50 },
+  { "gender": "OTHER", "count": 2 }
+]
+```
+
+* Active (non-deleted) students only
+
+## Status distribution
+
+`GET /dashboard/status`
+
+Response `200` — one entry per `StudentStatus` (zeros included):
+
+```json
+[
+  { "status": "ACTIVE", "count": 100 },
+  { "status": "INACTIVE", "count": 20 }
+]
+```
+
+* All retained students (active + soft-deleted). Soft-deleted rows are `INACTIVE`.
+
+---
+
 # Reports
 
 ADMIN and STAFF (`hasAnyRole('ADMIN', 'STAFF')`). JWT required. No schema / Flyway changes.

@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 11 — Dashboard (next)
+Milestone 12 — Audit Logging (next)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 10 — Reports & PDF Export (completed and closed; merged to `main`)
+Milestone 12 — Audit Logging
 
 ---
 
@@ -350,20 +350,65 @@ Milestone 10 — Reports & PDF Export (completed and closed; merged to `main`)
 
 ---
 
+## Milestone 11 — Dashboard (completed and closed; merged to `main`)
+
+### Backend
+
+* `DashboardController` at `/api/v1/dashboard` (ADMIN/STAFF via `@PreAuthorize`)
+* Endpoints: `GET /summary`, `GET /admissions`, `GET /gender`, `GET /status`
+* `DashboardService` aggregates via `StudentRepository` (`COUNT` / `GROUP BY`; native queries bypass `@SQLRestriction` for inactive/status/admissions-including-deleted)
+* Summary: total/active/inactive, new admissions (current UTC calendar month), male/female (active only), recent admissions/updates (top 5 active)
+* Admissions trend: last 12 months zero-filled; includes later-archived students
+* Gender chart: active roster including `OTHER`; status chart: ACTIVE vs INACTIVE across all retained rows
+* No Flyway / schema changes
+* Unit tests (`DashboardServiceTest`) + integration tests (`DashboardIntegrationTest`)
+
+### Frontend
+
+* Dashboard page replaces M11 placeholder: stat cards (Left Students label for inactive), ECharts (gender / status distribution / monthly admissions), recent lists, quick actions, skeletons, refresh
+* `provideEchartsCore` scoped to dashboard page (tree-shaken echarts core: pie + bar)
+* `DashboardService` + models; component + HTTP specs
+* Chart colors resolved from CSS theme tokens (`--color-primary-600`, `--color-warning-600`, `--color-inactive-500`) with fallbacks
+* Chart a11y: `role="img"`, `aria-label`, visually hidden value summaries
+* New Admissions hint discloses UTC month window (`This month (UTC)`)
+
+### Docs
+
+* `docs/07_API_Design.md` Dashboard section added
+* `docs/08_UI_UX.md` Dashboard section updated for shipped cards/charts/quick actions/error Retry (no longer “Charts (Future)”)
+
+### Milestone 11 QA bug fixes (BUG-001–007, issues #65–#71)
+
+* BUG-001 — Dashboard GETs use `SKIP_ERROR_TOAST`; empty state is the sole error UX (no multi-toast spam from `forkJoin`)
+* BUG-002 — Error empty state projects **Retry** (same pattern as student list)
+* BUG-003 — Charts expose `role="img"` / `aria-label` plus visually hidden text summaries
+* BUG-004 — `docs/08_UI_UX.md` reflects implemented dashboard; removed Future “Dashboard Charts”
+* BUG-005 — Middle chart title renamed to **Status Distribution**
+* BUG-006 — ECharts colors read from theme CSS variables via `getComputedStyle`
+* BUG-007 — New Admissions hint: “This month (UTC)” (UTC product decision unchanged)
+
+### Milestone 11 closure
+
+* Issues #65–#71 closed
+* Merged to `main` via PR (see git history / GitHub)
+
+---
+
 # Technology Decisions
 
-Unchanged from Milestone 1–10:
+Unchanged from Milestone 1–10, plus Milestone 11 dashboard definitions:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
 * Active `GET /students` continues to exclude soft-deleted rows
 * Document soft-delete / GCS objects are not cascaded when archiving a student
+* Dashboard: “Left Students” UI = `inactiveStudents` (soft-deleted); new admissions = current UTC calendar month (UI hint: “This month (UTC)”); gender cards active-only; status chart titled **Status Distribution**
 
 ---
 
 # Current Objective
 
-Begin Milestone 11 — Dashboard.
+Begin Milestone 12 — Audit Logging (planning / architecture review before implementation).
 
 ---
 
@@ -382,17 +427,18 @@ main
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–10 completed and merged to `main`
+* Milestone 5–11 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 * Milestone 10: PDF docs are references only; image docs embedded inline; report audit is SLF4J until Milestone 12; sync PDF download (no job queue); PDFs not persisted to GCS
 * Milestone 10 filter export uses `scope` (`ACTIVE` | `ARCHIVED` | `ALL`); active path uses `GET /students` predicates; archived path uses the inactive/deleted query path; `GET /students` itself still excludes soft-deleted rows
+* Milestone 11: dashboard recent rows expose `firstName`/`lastName` (not a computed `fullName`); monthly admissions use portable `EXTRACT(YEAR/MONTH)` for H2 + PostgreSQL compatibility; New Admissions window is UTC (UI discloses it)
 
 ---
 
 # Pending Milestones
 
-* Milestone 11 — Dashboard
+* Milestone 12 — Audit Logging
 * … (see roadmap)
 
 ---
@@ -407,9 +453,9 @@ None.
 
 # Next Session Goal
 
-1. Read Milestone 11 requirements in the development roadmap
-2. Plan Dashboard architecture (stats, charts, recent students, quick actions)
-3. Create / switch to `milestone/dashboard` and begin implementation after approval
+1. Read Milestone 12 scope in `docs/13_DEVELOPMENT_ROADMAP.md`
+2. Planning + Architecture Review for Audit Logging
+3. Create/switch to `milestone/audit-logging` after approval
 
 ---
 
