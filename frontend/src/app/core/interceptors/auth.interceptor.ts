@@ -9,13 +9,16 @@ import { environment } from '../../../environments/environment';
 
 /**
  * Attaches Bearer JWT and performs a single-flight refresh on 401.
+ *
+ * Logout is special-cased: attach Bearer when a token exists (so AUTH/LOGOUT
+ * audit can record the actor), but never attempt refresh-on-401 — the session
+ * is ending and the endpoint remains permitAll for revoke-without-JWT.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  const isAuthEndpoint = isPublicAuthRequest(req.url);
 
-  if (isAuthEndpoint) {
+  if (isAnonymousAuthRequest(req.url)) {
     return next(req);
   }
 
@@ -23,6 +26,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authReq = token
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : req;
+
+  if (isLogoutRequest(req.url)) {
+    return next(authReq);
+  }
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -47,12 +54,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
-function isPublicAuthRequest(url: string): boolean {
+/** Login / Google / refresh — never attach Bearer or refresh-on-401. */
+function isAnonymousAuthRequest(url: string): boolean {
   const base = environment.apiBaseUrl;
   return (
     url.includes(`${base}/${API_PATHS.auth.login}`) ||
     url.includes(`${base}/${API_PATHS.auth.google}`) ||
-    url.includes(`${base}/${API_PATHS.auth.refresh}`) ||
-    url.includes(`${base}/${API_PATHS.auth.logout}`)
+    url.includes(`${base}/${API_PATHS.auth.refresh}`)
   );
+}
+
+function isLogoutRequest(url: string): boolean {
+  return url.includes(`${environment.apiBaseUrl}/${API_PATHS.auth.logout}`);
 }

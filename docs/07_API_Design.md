@@ -97,6 +97,8 @@ Request (optional body)
 
 Revokes the presented refresh token, or all refresh tokens for the authenticated user when Bearer is present without a refresh body. Response `204`.
 
+When `Authorization: Bearer` is present, an `AUTH`/`LOGOUT` audit row is written. The Angular client attaches Bearer on logout when an access token exists (endpoint remains `permitAll` so revoke-without-JWT still works; no refresh-on-401 for logout).
+
 GET
 
 ```
@@ -728,6 +730,88 @@ Response `200` — one entry per `StudentStatus` (zeros included):
 
 ---
 
+# Audit Logs
+
+ADMIN only (`hasRole('ADMIN')` at SecurityConfig path matcher and `@PreAuthorize`). JWT required.
+
+Immutable event history for accountability. There is **no** separate `/audit/search` endpoint — list + filters replace the roadmap’s `/search` (same pattern as Users / Students).
+
+Records are append-only: no create/update/delete APIs for clients.
+
+## List audit logs
+
+`GET /audit`
+
+Query parameters (all optional except paging defaults):
+
+| Param | Description |
+|---|---|
+| `search` | Case-insensitive match on `description` or `username` |
+| `module` | `AUTH` \| `STUDENT` \| `DOCUMENT` \| `REPORT` |
+| `action` | `LOGIN` \| `LOGOUT` \| `CREATED` \| `UPDATED` \| `DELETED` \| `RESTORED` \| `UPLOADED` \| `REPLACED` \| `GENERATED` |
+| `username` | Exact username (case-insensitive) |
+| `entityId` | UUID of related entity when present |
+| `from` / `to` | Inclusive `created_date` range (ISO-8601 Instant). The Admin UI maps HTML date inputs to local-timezone start/end of day before sending Instants. |
+| `page` / `size` / `sort` | Default `createdDate,desc`, size 20. Allowed sort: `createdDate`, `username`, `module`, `action` |
+
+Response `200` — `PageResponse<AuditLogResponse>`:
+
+```json
+{
+  "content": [
+    {
+      "id": "…",
+      "module": "AUTH",
+      "action": "LOGIN",
+      "entityId": "…",
+      "description": "User logged in via password",
+      "username": "admin",
+      "ipAddress": "127.0.0.1",
+      "createdDate": "2026-07-18T12:00:00Z"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": true,
+  "empty": false
+}
+```
+
+* `400` — invalid sort property, or `from` after `to`
+* `403` — STAFF or non-admin
+
+## Get audit log by id
+
+`GET /audit/{id}`
+
+Response `200` — same shape as a list row.
+
+* `404` — unknown id
+* `403` — STAFF or non-admin
+
+## Recorded events (writers)
+
+| Event | Module | Action |
+|---|---|---|
+| Login (password / Google) | AUTH | LOGIN |
+| Logout (authenticated) | AUTH | LOGOUT |
+| Student created | STUDENT | CREATED |
+| Student updated | STUDENT | UPDATED |
+| Student soft-deleted | STUDENT | DELETED |
+| Student restored | STUDENT | RESTORED |
+| Document uploaded (registration or add) | DOCUMENT | UPLOADED |
+| Document replaced | DOCUMENT | REPLACED |
+| Report generated (single / selected / filter) | REPORT | GENERATED |
+
+Username and IP are snapshotted at write time (no FK to `users`). Descriptions must not contain passwords, JWTs, or full Aadhaar.
+
+Schema: Flyway `V7__create_audit_logs.sql` (`audit_logs`); immutability trigger in `V8__audit_logs_immutability.sql` (BEFORE UPDATE OR DELETE).
+
+---
+
 # Reports
 
 ADMIN and STAFF (`hasAnyRole('ADMIN', 'STAFF')`). JWT required. No schema / Flyway changes.
@@ -739,7 +823,7 @@ PDFs are generated on the backend (OpenPDF). Response body is raw PDF bytes.
 * Profile photo embedded when available
 * Supporting **image** documents (JPG/JPEG/PNG) embedded inline with caption
 * Supporting **PDF** documents listed as references only (type, original file name, uploaded date) — not merged into the report
-* Report audit for M10 is structured SLF4J logging; persistent `audit_logs` deferred to Milestone 12
+* Report generation also writes a persistent `audit_logs` row (Milestone 12); structured SLF4J logging remains for ops
 
 Configurable limits (`oms.reports` / env):
 

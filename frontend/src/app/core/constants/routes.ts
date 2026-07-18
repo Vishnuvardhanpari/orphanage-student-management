@@ -6,6 +6,7 @@ export const APP_ROUTES = {
   students: 'students',
   reports: 'reports',
   users: 'users',
+  audit: 'audit',
 } as const;
 
 /** Absolute path helpers for routerLink / navigate. */
@@ -16,4 +17,5 @@ export const APP_PATHS = {
   studentsInactive: `/${APP_ROUTES.students}/inactive`,
   reports: `/${APP_ROUTES.reports}`,
   users: `/${APP_ROUTES.users}`,
+  audit: `/${APP_ROUTES.audit}`,
 } as const;

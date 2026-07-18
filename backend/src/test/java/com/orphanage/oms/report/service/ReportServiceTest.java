@@ -59,6 +59,9 @@ class ReportServiceTest {
     @Mock
     private StudentPdfRenderer studentPdfRenderer;
 
+    @Mock
+    private com.orphanage.oms.audit.service.AuditService auditService;
+
     private ReportService reportService;
 
     @BeforeEach
@@ -68,7 +71,8 @@ class ReportServiceTest {
                 studentDeletedQuery,
                 studentDocumentRepository,
                 studentPdfRenderer,
-                new ReportProperties("OMS", 50, 100));
+                new ReportProperties("OMS", 50, 100),
+                auditService);
         authenticateAs("admin");
     }
 

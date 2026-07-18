@@ -219,6 +219,15 @@ Admin Only
 
 ---
 
+## Audit Logs
+
+Admin Only
+
+* Audit Log List (search, module/action/username/date filters, pagination)
+* Audit Event Detail (immutable read-only view)
+
+---
+
 # Navigation
 
 Sidebar Menu
@@ -230,6 +239,8 @@ Students
 Reports
 
 Users (Admin Only)
+
+Audit Logs (Admin Only)
 
 Profile
 

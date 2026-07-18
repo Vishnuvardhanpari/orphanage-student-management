@@ -43,6 +43,11 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/user/user.routes').then((m) => m.USER_ROUTES),
       },
+      {
+        path: APP_ROUTES.audit,
+        loadChildren: () =>
+          import('./features/audit/audit.routes').then((m) => m.AUDIT_ROUTES),
+      },
     ],
   },
   {

@@ -106,6 +106,7 @@ public class SecurityConfig {
                     }
 
                     auth.requestMatchers("/api/v1/users", "/api/v1/users/**").hasRole("ADMIN");
+                    auth.requestMatchers("/api/v1/audit", "/api/v1/audit/**").hasRole("ADMIN");
                     auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

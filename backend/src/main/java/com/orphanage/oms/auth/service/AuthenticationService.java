@@ -1,5 +1,8 @@
 package com.orphanage.oms.auth.service;
 
+import com.orphanage.oms.audit.enums.AuditAction;
+import com.orphanage.oms.audit.enums.AuditModule;
+import com.orphanage.oms.audit.service.AuditService;
 import com.orphanage.oms.auth.dto.AuthResponse;
 import com.orphanage.oms.auth.dto.GoogleLoginRequest;
 import com.orphanage.oms.auth.dto.LoginRequest;
@@ -9,6 +12,7 @@ import com.orphanage.oms.auth.dto.UserResponse;
 import com.orphanage.oms.auth.mapper.AuthMapper;
 import com.orphanage.oms.config.SecurityProperties;
 import com.orphanage.oms.exception.ApiException;
+import com.orphanage.oms.security.SecurityUtils;
 import com.orphanage.oms.security.UserPrincipal;
 import com.orphanage.oms.security.jwt.JwtService;
 import com.orphanage.oms.security.oauth.GoogleIdentity;
@@ -27,7 +31,6 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -48,6 +51,7 @@ public class AuthenticationService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final AuthMapper authMapper;
     private final SecurityProperties securityProperties;
+    private final AuditService auditService;
 
     public AuthenticationService(
             AuthenticationManager authenticationManager,
@@ -56,7 +60,8 @@ public class AuthenticationService {
             RefreshTokenService refreshTokenService,
             GoogleTokenVerifier googleTokenVerifier,
             AuthMapper authMapper,
-            SecurityProperties securityProperties) {
+            SecurityProperties securityProperties,
+            AuditService auditService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
@@ -64,6 +69,7 @@ public class AuthenticationService {
         this.googleTokenVerifier = googleTokenVerifier;
         this.authMapper = authMapper;
         this.securityProperties = securityProperties;
+        this.auditService = auditService;
     }
 
     /**
@@ -94,6 +100,13 @@ public class AuthenticationService {
             user.setLastLoginAt(Instant.now());
             userRepository.save(user);
             log.info("User '{}' logged in via password", user.getUsername());
+            auditService.record(
+                    AuditModule.AUTH,
+                    AuditAction.LOGIN,
+                    user.getId(),
+                    "User logged in via password",
+                    user.getUsername(),
+                    clientIp);
             return issueTokens(principal, user, clientIp, userAgent);
         } catch (BadCredentialsException ex) {
             registerFailedAttempt(user);
@@ -142,6 +155,13 @@ public class AuthenticationService {
 
         UserPrincipal principal = new UserPrincipal(user);
         log.info("User '{}' logged in via Google", user.getUsername());
+        auditService.record(
+                AuditModule.AUTH,
+                AuditAction.LOGIN,
+                user.getId(),
+                "User logged in via Google",
+                user.getUsername(),
+                clientIp);
         return issueTokens(principal, user, clientIp, userAgent);
     }
 
@@ -171,20 +191,27 @@ public class AuthenticationService {
     /**
      * Revokes refresh token(s) for logout.
      *
-     * @param request logout request
+     * @param request  logout request
+     * @param clientIp client IP
      */
     @Transactional
-    public void logout(LogoutRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null
-                && authentication.isAuthenticated()
-                && authentication.getPrincipal() instanceof UserPrincipal principal) {
+    public void logout(LogoutRequest request, String clientIp) {
+        var principalOpt = SecurityUtils.currentPrincipal();
+        if (principalOpt.isPresent()) {
+            UserPrincipal principal = principalOpt.get();
             if (StringUtils.hasText(request != null ? request.refreshToken() : null)) {
                 refreshTokenService.revoke(request.refreshToken());
             } else {
                 refreshTokenService.revokeAllForUser(principal.getId());
             }
             log.info("User '{}' logged out", principal.getUsername());
+            auditService.record(
+                    AuditModule.AUTH,
+                    AuditAction.LOGOUT,
+                    principal.getId(),
+                    "User logged out",
+                    principal.getUsername(),
+                    clientIp);
             return;
         }
 
@@ -204,10 +231,7 @@ public class AuthenticationService {
      */
     @Transactional(readOnly = true)
     public UserResponse me() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw unauthorized("Authentication is required.");
-        }
+        UserPrincipal principal = SecurityUtils.requirePrincipal();
         User user = userRepository.findByIdWithRole(principal.getId())
                 .orElseThrow(() -> unauthorized("Authentication is required."));
         return authMapper.toUserResponse(user);

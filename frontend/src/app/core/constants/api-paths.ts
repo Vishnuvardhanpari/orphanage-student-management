@@ -13,4 +13,5 @@ export const API_PATHS = {
   users: 'users',
   reports: 'reports',
   dashboard: 'dashboard',
+  audit: 'audit',
 } as const;

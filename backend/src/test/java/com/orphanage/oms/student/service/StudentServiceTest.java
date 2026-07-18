@@ -74,6 +74,9 @@ class StudentServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private com.orphanage.oms.audit.service.AuditService auditService;
+
     @InjectMocks
     private StudentService studentService;
 

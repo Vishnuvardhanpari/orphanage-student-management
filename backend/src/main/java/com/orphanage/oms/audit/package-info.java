@@ -1,4 +1,4 @@
 /**
- * Audit logging components (Milestone 12+).
+ * Audit logging components (Milestone 12).
  */
 package com.orphanage.oms.audit;
