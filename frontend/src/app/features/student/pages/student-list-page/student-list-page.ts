@@ -521,15 +521,19 @@ export class StudentListPage implements OnInit {
 
 /**
  * Normalizes an optional whole-number filter value from a number input.
- * Returns null for blank input (NumberValueAccessor emits null) and NaN for
- * non-integer input so callers can surface a validation error instead of
- * silently dropping the filter.
+ * Accepts numbers (legacy NumberValueAccessor) and digit strings (`app-input` CVA).
+ * Returns null for blank input and NaN for non-integer input so callers can
+ * surface a validation error instead of silently dropping the filter.
  */
-function toOptionalInt(value: number | null): number | null {
-  if (value === null) {
+function toOptionalInt(value: number | string | null): number | null {
+  if (value === null || value === '') {
     return null;
   }
-  return Number.isInteger(value) ? value : Number.NaN;
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) {
+    return Number.NaN;
+  }
+  return Number.isInteger(n) ? n : Number.NaN;
 }
 
 async function readBlobErrorMessage(err: unknown, fallback: string): Promise<string> {

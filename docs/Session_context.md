@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 14 — Testing (next)
+Milestone 14 — Testing (completed and closed; merged to `main`)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 13 — UI Polish & Design System (completed and closed; merged to `main`)
+Milestone 15 — Production Deployment (next)
 
 ---
 
@@ -477,9 +477,58 @@ Milestone 13 — UI Polish & Design System (completed and closed; merged to `mai
 
 ---
 
+## Milestone 14 — Testing (completed and closed; merged to `main`)
+
+### Coverage tooling
+
+* Backend: JaCoCo + Surefire `@{argLine}`; `mvn verify` enforces **≥80% LINE** (excludes dto/entity/enums/config/`OmsApplication`/`GcsStorageService`)
+* Frontend: Karma coverage with **≥80% lines** gate (`angular.json` `coverageThresholds.lines`)
+* Measured locally: backend **~88.9%** line; frontend **~80.3%** line (224/224 unit specs green)
+
+### Backend gap-fill
+
+* `AuthenticationServiceTest`, `ClientIpResolverTest`, `SecurityUtilsTest`, `GoogleIdTokenVerifierServiceTest`, `JsonAuthenticationEntryPointTest`, `RefreshTokenCleanupJobTest`
+* Full suite: **203** tests, JaCoCo check met
+
+### Frontend gap-fill
+
+* User list/form/detail, reset-password dialog, user-actions cell renderer, audit detail specs
+* Fixed M13 regression: student active/inactive list `toOptionalInt` now accepts digit strings from `app-input` CVA
+* `ErrorPage` spec provides router; student list DOM filter specs updated for `app-input`
+
+### Cypress E2E
+
+* Cypress 14 + `start-server-and-test`; specs under `frontend/cypress/e2e/` (auth, students, reports/authz)
+* `data-cy` on login + logout; custom commands `login` / `visitAuthenticated` / `ensureStaffUser`
+
+### CI
+
+* `.github/workflows/ci-tests.yml`: backend `mvn verify`, frontend `npm run test:ci`, Cypress against Postgres service + Spring Boot + `ng serve`
+
+### Manual checklist (docs/11_Testing_Strategy.md)
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Login / session / logout / guards | Covered | Cypress `auth.cy.ts` + auth unit/IT |
+| Student register / search / archive / restore | Covered | Cypress `students.cy.ts` + student unit/IT |
+| Report single PDF | Covered | Cypress `reports-authz.cy.ts` + report IT |
+| STAFF cannot open Users/Audit | Covered | Cypress authz spec |
+| Upload / download / Google login / full browser matrix | Residual manual | Backend file ITs; Google skipped unless client id configured; browser matrix → M16 |
+| Dashboard / User Mgmt / Audit UI | Covered by unit + prior milestone ITs | Spot-check recommended |
+
+### Docs
+
+* `docs/11_Testing_Strategy.md`: CI workflow + H2 (not Testcontainers) decision noted
+
+### Milestone 14 closure
+
+* Merged to `main` via PR (see closure commit for number)
+
+---
+
 # Technology Decisions
 
-Unchanged from Milestone 1–12, plus Milestone 13 UI polish:
+Unchanged from Milestone 1–13, plus Milestone 14 testing:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
@@ -488,12 +537,13 @@ Unchanged from Milestone 1–12, plus Milestone 13 UI polish:
 * Dashboard: “Left Students” UI = `inactiveStudents` (soft-deleted); new admissions = current UTC calendar month (UI hint: “This month (UTC)”); gender cards active-only; status chart titled **Status Distribution**
 * Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
 * Milestone 13: glass on premium surfaces only; dark mode architecture completed (not full third-party theme skins); custom Tailwind utilities used as HTML classes (not `@apply` in component SCSS — Tailwind v4 limitation); student form / report page Field migration deferred (follow-up after M13)
+* Milestone 14: backend integration tests remain on **H2** (PostgreSQL mode); Testcontainers deferred; JaCoCo LINE ≥80%; frontend Karma lines ≥80%; Cypress critical-path E2E; CI test workflow only (deploy remains M15); `GcsStorageService` excluded from JaCoCo (prod GCS HTTP; local storage covered)
 
 ---
 
 # Current Objective
 
-Begin Milestone 14 — Testing.
+Begin Milestone 15 — Production Deployment.
 
 ---
 
@@ -512,7 +562,7 @@ main
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–13 completed and merged to `main`
+* Milestone 5–14 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 * Milestone 10: PDF docs are references only; image docs embedded inline; report generation writes persistent `audit_logs` (M12) and keeps SLF4J for ops; sync PDF download (no job queue); PDFs not persisted to GCS
@@ -520,12 +570,12 @@ main
 * Milestone 11: dashboard recent rows expose `firstName`/`lastName` (not a computed `fullName`); monthly admissions use portable `EXTRACT(YEAR/MONTH)` for H2 + PostgreSQL compatibility; New Admissions window is UTC (UI discloses it)
 * Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
 * Milestone 13: glass on premium surfaces; dark-mode-ready tokens + ThemeService; mobile CDK nav drawer; 404 ErrorPage; shared FilterPanel/PaginationBar/DialogShell; archived list filters; page-owned list errors; user form on design-system controls; student/report form migration follow-up
+* Milestone 14: H2 for Spring Boot tests (not Testcontainers); JaCoCo/Karma line gates at 80%; Cypress critical paths; GitHub Actions `ci-tests.yml`
 
 ---
 
 # Pending Milestones
 
-* Milestone 14 — Testing
 * Milestone 15 — Production Deployment
 * Milestone 16 — Production Validation
 * … (see roadmap)
@@ -537,14 +587,13 @@ main
 
 None.
 
-**Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`. Low Windows paging-file memory can cause Surefire / `ng build` OOMs; use `-DforkCount=0` or free RAM before frontend builds. Prefer targeted `ng test --include=...` batches when memory is tight.
+**Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`. Low Windows paging-file memory can cause Surefire / `ng build` OOMs; prefer forked Surefire for JaCoCo (`forkCount=1`, do not use `-DforkCount=0` when measuring coverage). Prefer targeted `ng test --include=...` batches when memory is tight (coverage gate applies to full suite).
 
 ---
 
 # Next Session Goal
 
-1. Plan Milestone 14 — Testing coverage targets and critical-path suites
-2. Optionally schedule student/report form Field migration as a small follow-up PR
+1. Begin Milestone 15 — Production Deployment (Cloud Run, GCS frontend, Supabase, secrets, HTTPS, logging/monitoring)
 
 ---
 

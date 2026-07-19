@@ -97,7 +97,22 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "runner": "karma"
+            "runner": "karma",
+            "coverage": true,
+            "coverageExclude": [
+              "src/main.ts",
+              "src/environments/**",
+              "**/*.routes.ts"
+            ],
+            "coverageReporters": [
+              "html",
+              "text-summary",
+              "lcovonly",
+              "json-summary"
+            ],
+            "coverageThresholds": {
+              "lines": 80
+            }
           }
         }
       }

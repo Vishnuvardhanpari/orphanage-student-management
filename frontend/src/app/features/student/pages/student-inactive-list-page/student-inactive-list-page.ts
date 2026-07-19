@@ -486,11 +486,15 @@ export class StudentInactiveListPage implements OnInit {
   }
 }
 
-function toOptionalInt(value: number | null): number | null {
-  if (value === null) {
+function toOptionalInt(value: number | string | null): number | null {
+  if (value === null || value === '') {
     return null;
   }
-  return Number.isInteger(value) ? value : Number.NaN;
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) {
+    return Number.NaN;
+  }
+  return Number.isInteger(n) ? n : Number.NaN;
 }
 
 async function readBlobErrorMessage(err: unknown, fallback: string): Promise<string> {
