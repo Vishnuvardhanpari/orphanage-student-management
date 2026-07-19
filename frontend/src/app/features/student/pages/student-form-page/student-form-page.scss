@@ -9,11 +9,15 @@
 }
 
 .student-form__section {
-  @apply flex flex-col gap-4 rounded-xl border border-surface-border bg-surface-elevated p-6;
+  @apply flex flex-col gap-4 rounded-xl border p-6;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .student-form__section h2 {
-  @apply text-lg font-semibold text-surface-fg;
+  @apply m-0 text-lg font-semibold text-surface-fg;
 }
 
 .student-form__grid {
@@ -29,8 +33,7 @@
 }
 
 .student-form__input {
-  @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal
-    text-surface-fg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
+  @apply w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal text-surface-fg transition-colors duration-150 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .student-form__error {

@@ -1,0 +1,28 @@
+<div class="mobile-nav">
+  <div class="mobile-nav__header">
+    <span class="mobile-nav__brand">OMS</span>
+    <button
+      type="button"
+      class="mobile-nav__close"
+      aria-label="Close navigation"
+      (click)="close()"
+    >
+      <lucide-icon [img]="icons.X" [size]="20" aria-hidden="true" />
+    </button>
+  </div>
+
+  <nav class="mobile-nav__nav">
+    @for (item of navItems(); track item.path) {
+      <a
+        class="mobile-nav__link"
+        [routerLink]="item.path"
+        routerLinkActive="mobile-nav__link--active"
+        [routerLinkActiveOptions]="item.path === paths.students ? { exact: true } : { exact: false }"
+        (click)="close()"
+      >
+        <lucide-icon [img]="item.icon" [size]="18" aria-hidden="true" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+</div>

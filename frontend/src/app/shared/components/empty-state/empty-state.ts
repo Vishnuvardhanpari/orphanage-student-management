@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
+export type EmptyStateVariant = 'default' | 'error';
+
 @Component({
   selector: 'app-empty-state',
   standalone: true,
@@ -10,4 +12,5 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export class EmptyState {
   readonly title = input.required<string>();
   readonly description = input('');
+  readonly variant = input<EmptyStateVariant>('default');
 }

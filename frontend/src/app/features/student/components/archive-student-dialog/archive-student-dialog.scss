@@ -1,42 +1,13 @@
 @reference "../../../../../styles.css";
 
-.archive-dialog {
-  @apply min-w-[22rem] max-w-md rounded-xl border border-surface-border bg-surface-elevated p-6 shadow-lg;
+.archive-dialog__message {
+  @apply m-0 mb-4;
+}
 
-  &__title {
-    @apply m-0 text-lg font-semibold text-surface-fg;
-  }
+.archive-dialog__form {
+  @apply flex flex-col gap-4;
+}
 
-  &__message {
-    @apply mt-2 mb-4 text-sm text-surface-muted-fg;
-  }
-
-  &__form {
-    @apply flex flex-col gap-3;
-  }
-
-  &__field {
-    @apply flex flex-col gap-1 text-sm text-surface-fg;
-  }
-
-  &__optional {
-    @apply text-surface-muted-fg font-normal;
-  }
-
-  &__input {
-    @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal
-      text-surface-fg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
-
-    &--textarea {
-      @apply resize-none;
-    }
-  }
-
-  &__error {
-    @apply m-0 text-sm font-normal text-error-600;
-  }
-
-  &__actions {
-    @apply mt-2 flex justify-end gap-2;
-  }
+.archive-dialog__error {
+  @apply m-0 text-sm text-error-600;
 }

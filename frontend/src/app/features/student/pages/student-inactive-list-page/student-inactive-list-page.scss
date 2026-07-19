@@ -1,7 +1,23 @@
 @reference "../../../../../styles.css";
 
-.student-inactive-list {
-  @apply flex flex-col gap-4;
+.student-inactive-list__field--search {
+  @apply sm:col-span-2;
+}
+
+.student-inactive-list__field {
+  @apply flex flex-col gap-1.5 text-sm font-medium text-surface-fg;
+}
+
+.student-inactive-list__age-label {
+  @apply text-sm font-medium text-surface-fg;
+}
+
+.student-inactive-list__age-range {
+  @apply flex items-center gap-2;
+}
+
+.student-inactive-list__filter-actions {
+  @apply flex items-end gap-2;
 }
 
 .student-inactive-list__grid {
@@ -9,17 +25,5 @@
 }
 
 .student-inactive-list__grid--loading {
-  @apply opacity-60 pointer-events-none;
-}
-
-.student-inactive-list__pager {
-  @apply flex flex-wrap items-center justify-between gap-3;
-}
-
-.student-inactive-list__pager-meta {
-  @apply text-sm text-surface-muted-fg;
-}
-
-.student-inactive-list__pager-actions {
-  @apply flex gap-2;
+  @apply pointer-events-none opacity-60;
 }

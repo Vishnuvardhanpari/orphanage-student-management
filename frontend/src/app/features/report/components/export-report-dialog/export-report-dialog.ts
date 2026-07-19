@@ -1,6 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Button } from '../../../../shared/components/button/button';
+import { DialogShell } from '../../../../shared/components/dialog-shell/dialog-shell';
 
 export interface ExportReportDialogData {
   title: string;
@@ -16,7 +17,7 @@ export interface ExportReportDialogData {
 @Component({
   selector: 'app-export-report-dialog',
   standalone: true,
-  imports: [Button],
+  imports: [Button, DialogShell],
   templateUrl: './export-report-dialog.html',
   styleUrl: './export-report-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

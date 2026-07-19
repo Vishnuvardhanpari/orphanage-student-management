@@ -737,11 +737,11 @@ Store:
 
 ---
 
-# Milestone 13 — UI Polish
+# Milestone 13 — UI Polish & Design System
 
 ## Objective
 
-Refine the application into a production-quality user experience.
+Refine the application into a production-quality user experience with a modern, accessible, responsive, and consistent design system. Enhance usability through polished interactions, improved visual hierarchy, glassmorphism-inspired UI elements, and preparation for future theming.
 
 ---
 
@@ -750,11 +750,15 @@ Refine the application into a production-quality user experience.
 * Empty States
 * Loading Skeletons
 * Responsive Layout
-* Accessibility Improvements
-* Better Animations
+* Accessibility Improvements (WCAG)
+* Better Animations & Micro-interactions
+* Glassmorphism UI Components
 * Dark Mode Preparation
 * Consistent Spacing
 * Improved Typography
+* Design System Standardization
+* Iconography & Visual Consistency
+* Enhanced User Feedback (Hover, Focus, Active States)
 
 ---
 
@@ -765,9 +769,13 @@ Refine the application into a production-quality user experience.
 * Error Pages
 * Responsive Layout Refinements
 * Accessibility Enhancements
-* Theme Preparation
+* Glassmorphism Cards, Dialogs & Overlays
+* Theme Preparation (Light/Dark Mode)
 * Reusable UI Components
-* Animation Improvements
+* Animation & Transition Improvements
+* Consistent Button, Form & Table Styling
+* Improved Dashboard Visual Design
+* Enhanced Navigation & Sidebar Experience
 
 ---
 
@@ -775,7 +783,7 @@ Refine the application into a production-quality user experience.
 
 No functional backend changes expected.
 
-Only minor API adjustments if required by UI improvements.
+Only minor API adjustments if required to support UI improvements.
 
 ---
 
@@ -785,34 +793,55 @@ None.
 
 ---
 
+## Design Guidelines
+
+* Modern SaaS-inspired UI
+* Glassmorphism for premium surfaces (cards, dialogs, overlays, summary widgets)
+* Tailwind CSS utility-first styling
+* CSS Variables for theme support
+* Consistent spacing scale
+* Consistent typography hierarchy
+* Responsive layouts for desktop, tablet, and mobile
+* Smooth animations without impacting performance
+* Accessible color contrast and keyboard navigation
+* Dark Mode ready architecture
+
+---
+
 ## Testing Deliverables
 
-* Responsive Tests
-* Accessibility Tests
+* Responsive UI Tests
+* Accessibility (WCAG) Tests
 * Browser Compatibility Tests
 * UI Regression Tests
-* Performance Tests
+* Performance & Lighthouse Checks
+* Visual Consistency Review
+* Keyboard Navigation Tests
 
 ---
 
 ## Definition of Done
 
-* UI is responsive.
+* UI is fully responsive across supported devices.
 * Accessibility checks pass.
-* Consistent design system.
-* Smooth user experience.
-* Production-ready appearance.
+* Consistent design system is applied across all pages.
+* Glassmorphism components are implemented consistently.
+* Theme architecture supports future Dark Mode.
+* Animations are smooth and performant.
+* Visual hierarchy and typography are consistent.
+* Production-ready appearance and user experience.
 
 ---
 
 ## Deliverables
 
 * Enterprise-quality UI
+* Modern Glassmorphism Design System
 * Responsive experience
 * Accessibility improvements
+* Reusable UI component library
+* Dark Mode-ready theme architecture
 * Production-ready user interface
-
-
 ---
 
 # Milestone 14 — Testing

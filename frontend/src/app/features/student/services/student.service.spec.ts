@@ -64,6 +64,7 @@ describe('StudentService', () => {
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('10');
     expect(req.request.params.get('sort')).toBe('firstName,asc');
+    expect(req.request.context.get(SKIP_ERROR_TOAST)).toBeTrue();
 
     req.flush({
       content: [],
@@ -468,6 +469,7 @@ describe('StudentService', () => {
         r.params.get('size') === '20',
     );
     expect(req.request.method).toBe('GET');
+    expect(req.request.context.get(SKIP_ERROR_TOAST)).toBeTrue();
     req.flush({
       content: [],
       totalElements: 0,
@@ -479,6 +481,48 @@ describe('StudentService', () => {
       empty: true,
     });
     expect(total).toBe(0);
+  });
+
+  it('lists inactive students with filters', () => {
+    service
+      .listInactive({
+        search: 'meera',
+        gender: Gender.Female,
+        admissionYear: 2022,
+        school: 'Lakeview',
+        ageMin: 10,
+        ageMax: 16,
+        page: 1,
+        size: 10,
+        sort: 'firstName,asc',
+      })
+      .subscribe();
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.apiBaseUrl}/${API_PATHS.students}/inactive` &&
+        r.method === 'GET',
+    );
+    expect(req.request.params.get('search')).toBe('meera');
+    expect(req.request.params.get('gender')).toBe('FEMALE');
+    expect(req.request.params.get('admissionYear')).toBe('2022');
+    expect(req.request.params.get('school')).toBe('Lakeview');
+    expect(req.request.params.get('ageMin')).toBe('10');
+    expect(req.request.params.get('ageMax')).toBe('16');
+    expect(req.request.params.get('page')).toBe('1');
+    expect(req.request.params.get('size')).toBe('10');
+    expect(req.request.params.get('sort')).toBe('firstName,asc');
+    expect(req.request.context.get(SKIP_ERROR_TOAST)).toBeTrue();
+    req.flush({
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      size: 10,
+      number: 1,
+      first: false,
+      last: true,
+      empty: true,
+    });
   });
 
   it('updates student fields via PUT', () => {

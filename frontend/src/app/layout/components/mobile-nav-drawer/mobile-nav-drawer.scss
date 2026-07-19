@@ -1,0 +1,43 @@
+@reference "../../../../styles.css";
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.mobile-nav {
+  @apply flex h-full w-[min(18rem,85vw)] flex-col border-r border-glass-border p-4 shadow-xl;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mobile-nav__header {
+  @apply mb-4 flex items-center justify-between;
+}
+
+.mobile-nav__brand {
+  @apply text-sm font-semibold text-surface-fg;
+}
+
+.mobile-nav__close {
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-lg text-surface-muted-fg
+    transition-colors hover:bg-surface-muted hover:text-surface-fg
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500;
+}
+
+.mobile-nav__nav {
+  @apply flex flex-col gap-1;
+}
+
+.mobile-nav__link {
+  @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+    text-surface-muted-fg transition-colors duration-150
+    hover:bg-surface-muted hover:text-surface-fg
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500;
+
+  &--active {
+    @apply bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300;
+  }
+}

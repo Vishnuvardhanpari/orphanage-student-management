@@ -1,0 +1,10 @@
+<section class="error-page oms-page">
+  <app-page-header [title]="codeLabel()" [subtitle]="title()" />
+  <app-empty-state
+    variant="error"
+    [title]="title()"
+    [description]="description()"
+  >
+    <app-button variant="primary" [routerLink]="homePath">Go to dashboard</app-button>
+  </app-empty-state>
+</section>

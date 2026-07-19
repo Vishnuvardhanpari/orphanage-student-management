@@ -1,6 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Button } from '../button/button';
+import { DialogShell } from '../dialog-shell/dialog-shell';
 
 export interface ConfirmDialogData {
   title: string;
@@ -12,12 +13,12 @@ export interface ConfirmDialogData {
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
-  imports: [Button],
+  imports: [Button, DialogShell],
   template: `
-    <div class="confirm-dialog" role="dialog" [attr.aria-label]="data.title">
-      <h2 class="confirm-dialog__title">{{ data.title }}</h2>
+    <app-dialog-shell [ariaLabel]="data.title">
+      <h2 dialogTitle>{{ data.title }}</h2>
       <p class="confirm-dialog__message">{{ data.message }}</p>
-      <div class="confirm-dialog__actions">
+      <div dialogActions>
         <app-button variant="secondary" (pressed)="dialogRef.close(false)">Cancel</app-button>
         <app-button
           [variant]="data.danger ? 'danger' : 'primary'"
@@ -26,21 +27,12 @@ export interface ConfirmDialogData {
           {{ data.confirmLabel || 'Confirm' }}
         </app-button>
       </div>
-    </div>
+    </app-dialog-shell>
   `,
   styles: `
     @reference "../../../../styles.css";
-    .confirm-dialog {
-      @apply min-w-[20rem] max-w-md rounded-xl border border-surface-border bg-surface-elevated p-6 shadow-lg;
-    }
-    .confirm-dialog__title {
-      @apply m-0 text-lg font-semibold text-surface-fg;
-    }
     .confirm-dialog__message {
-      @apply mt-2 mb-6 text-sm text-surface-muted-fg;
-    }
-    .confirm-dialog__actions {
-      @apply flex justify-end gap-2;
+      @apply m-0;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

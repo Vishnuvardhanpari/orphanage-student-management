@@ -22,6 +22,8 @@ import {
 } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { Skeleton } from '../../../../shared/components/skeleton/skeleton';
+import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import {
   ExportReportDialog,
   ExportReportDialogData,
@@ -49,7 +51,7 @@ import { StudentService } from '../../services/student.service';
 @Component({
   selector: 'app-student-profile-page',
   standalone: true,
-  imports: [PageHeader, Button, DatePipe, DecimalPipe, EmptyState],
+  imports: [PageHeader, Button, DatePipe, DecimalPipe, EmptyState, Skeleton, StatusBadge],
   templateUrl: './student-profile-page.html',
   styleUrl: './student-profile-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

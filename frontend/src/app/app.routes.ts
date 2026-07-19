@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { MainLayout } from './layout/pages/main-layout/main-layout';
 import { APP_ROUTES } from './core/constants/routes';
 import { authGuard } from './core/guards/auth.guard';
+import { ErrorPage } from './shared/components/error-page/error-page';
 
 export const routes: Routes = [
   {
@@ -48,10 +49,14 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/audit/audit.routes').then((m) => m.AUDIT_ROUTES),
       },
+      {
+        path: '**',
+        component: ErrorPage,
+      },
     ],
   },
   {
     path: '**',
-    redirectTo: APP_ROUTES.dashboard,
+    component: ErrorPage,
   },
 ];

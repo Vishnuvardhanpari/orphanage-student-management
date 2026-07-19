@@ -8,6 +8,9 @@ import {
   Validators,
 } from '@angular/forms';
 import { Button } from '../../../../shared/components/button/button';
+import { DialogShell } from '../../../../shared/components/dialog-shell/dialog-shell';
+import { Field } from '../../../../shared/components/field/field';
+import { Input } from '../../../../shared/components/input/input';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 
 export interface ResetPasswordDialogData {
@@ -28,83 +31,65 @@ function passwordsMatchValidator(): ValidatorFn {
 @Component({
   selector: 'app-reset-password-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, Button],
+  imports: [ReactiveFormsModule, Button, DialogShell, Field, Input],
   template: `
-    <div class="reset-dialog" role="dialog" aria-labelledby="reset-password-title">
-      <h2 id="reset-password-title" class="reset-dialog__title">Reset password</h2>
+    <app-dialog-shell ariaLabel="Reset password" size="lg">
+      <h2 dialogTitle>Reset password</h2>
       <p class="reset-dialog__subtitle">Set a new password for {{ data.username }}.</p>
-      <form class="reset-dialog__form" [formGroup]="form" (ngSubmit)="submit()">
-        <label class="reset-dialog__field">
-          <span>New password</span>
-          <input
+      <form class="reset-dialog__form" [formGroup]="form">
+        <app-field
+          label="New password"
+          [error]="
+            form.controls.newPassword.touched && form.controls.newPassword.invalid
+              ? 'Password must be at least 8 characters.'
+              : ''
+          "
+        >
+          <app-input
             type="password"
             formControlName="newPassword"
             autocomplete="new-password"
-            class="reset-dialog__input"
           />
-          @if (form.controls.newPassword.touched && form.controls.newPassword.invalid) {
-            <span class="reset-dialog__error">Password must be at least 8 characters.</span>
-          }
-        </label>
-        <label class="reset-dialog__field">
-          <span>Confirm password</span>
-          <input
+        </app-field>
+        <app-field
+          label="Confirm password"
+          [error]="confirmPasswordError()"
+        >
+          <app-input
             type="password"
             formControlName="confirmPassword"
             autocomplete="new-password"
-            class="reset-dialog__input"
           />
-          @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('required')) {
-            <span class="reset-dialog__error">Confirm password is required.</span>
-          }
-          @if (
-            form.controls.confirmPassword.touched &&
-            form.hasError('passwordsMismatch') &&
-            !form.controls.confirmPassword.hasError('required')
-          ) {
-            <span class="reset-dialog__error">Passwords do not match.</span>
-          }
-        </label>
+        </app-field>
         @if (error()) {
           <p class="reset-dialog__error" role="alert">{{ error() }}</p>
         }
-        <div class="reset-dialog__actions">
-          <app-button type="button" variant="secondary" (pressed)="dialogRef.close(null)">
-            Cancel
-          </app-button>
-          <app-button type="submit" variant="primary" [disabled]="form.invalid || submitting()">
-            {{ submitting() ? 'Saving…' : 'Reset password' }}
-          </app-button>
-        </div>
       </form>
-    </div>
+      <div dialogActions>
+        <app-button type="button" variant="secondary" (pressed)="dialogRef.close(null)">
+          Cancel
+        </app-button>
+        <app-button
+          type="button"
+          variant="primary"
+          [disabled]="form.invalid || submitting()"
+          (pressed)="submit()"
+        >
+          {{ submitting() ? 'Saving…' : 'Reset password' }}
+        </app-button>
+      </div>
+    </app-dialog-shell>
   `,
   styles: `
     @reference "../../../../../styles.css";
-    .reset-dialog {
-      @apply min-w-[22rem] max-w-md rounded-xl border border-surface-border bg-surface-elevated p-6 shadow-lg;
-    }
-    .reset-dialog__title {
-      @apply m-0 text-lg font-semibold text-surface-fg;
-    }
     .reset-dialog__subtitle {
-      @apply mt-1 mb-4 text-sm text-surface-muted-fg;
+      @apply m-0 mb-4;
     }
     .reset-dialog__form {
       @apply flex flex-col gap-4;
     }
-    .reset-dialog__field {
-      @apply flex flex-col gap-1.5 text-sm font-medium text-surface-fg;
-    }
-    .reset-dialog__input {
-      @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal
-        text-surface-fg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
-    }
     .reset-dialog__error {
-      @apply text-sm font-normal text-error-600;
-    }
-    .reset-dialog__actions {
-      @apply flex justify-end gap-2;
+      @apply m-0 text-sm font-normal text-error-600;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -119,17 +104,32 @@ export class ResetPasswordDialog {
 
   readonly form = this.fb.nonNullable.group(
     {
-      newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
-      confirmPassword: ['', [Validators.required]],
+      newPassword: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', Validators.required],
     },
     { validators: passwordsMatchValidator() },
   );
 
+  protected confirmPasswordError(): string {
+    const confirm = this.form.controls.confirmPassword;
+    if (!confirm.touched) {
+      return '';
+    }
+    if (confirm.hasError('required')) {
+      return 'Confirm password is required.';
+    }
+    if (this.form.hasError('passwordsMismatch')) {
+      return 'Passwords do not match.';
+    }
+    return '';
+  }
+
   submit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    this.form.markAllAsTouched();
+    if (this.form.invalid || this.submitting()) {
       return;
     }
+    this.submitting.set(true);
     this.dialogRef.close(this.form.controls.newPassword.value);
   }
 }

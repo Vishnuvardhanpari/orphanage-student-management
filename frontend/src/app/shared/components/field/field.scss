@@ -1,0 +1,21 @@
+@reference "../../../../styles.css";
+
+.field {
+  @apply flex flex-col gap-1.5 text-sm font-medium text-surface-fg;
+}
+
+.field__label {
+  @apply text-sm font-medium text-surface-fg;
+}
+
+.field__control {
+  @apply font-normal;
+}
+
+.field__hint {
+  @apply m-0 text-xs font-normal text-surface-muted-fg;
+}
+
+.field__error {
+  @apply m-0 text-xs font-normal text-error-600;
+}

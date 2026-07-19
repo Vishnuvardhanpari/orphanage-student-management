@@ -1,0 +1,23 @@
+<div class="pagination-bar">
+  <span class="pagination-bar__meta">{{ meta() }}</span>
+  <div class="pagination-bar__actions">
+    <app-button
+      type="button"
+      variant="secondary"
+      size="sm"
+      [disabled]="!canPrev()"
+      (pressed)="previous.emit()"
+    >
+      Previous
+    </app-button>
+    <app-button
+      type="button"
+      variant="secondary"
+      size="sm"
+      [disabled]="!canNext()"
+      (pressed)="next.emit()"
+    >
+      Next
+    </app-button>
+  </div>
+</div>

@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 13 — UI Polish
+Milestone 13 — UI Polish (QA BUG-001–011 fixed; pushed on `milestone/ui-polish`; PR pending)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 13 — UI Polish
+Milestone 13 — UI Polish & Design System
 
 ---
 
@@ -436,9 +436,45 @@ Milestone 13 — UI Polish
 
 ---
 
+## Milestone 13 — UI Polish & Design System (QA BUG-001–011 addressed on `milestone/ui-polish`)
+
+### Frontend
+
+* Design tokens expanded in `styles.css` (status/dark tokens, overlay, focus/sr-only/reduced-motion, AG Grid dark hooks, toastr dark shadow, global `.status-badge*`)
+* Shared primitives: Card, Skeleton (`tall`), DialogShell, Field (auto label↔control via `contentChild`, manual `forId` override), Input, Select, Textarea, StatusBadge, FilterPanel (`role=search`), PaginationBar, ErrorPage
+* EmptyState: default `role=status`, error `role=alert`; ConfirmDialog + feature dialogs compose DialogShell (glass); CDK owns `role=dialog` (no nested dialog roles)
+* Layout: skip link, mobile nav drawer (CDK + `ariaLabel`), ThemeService; default dialog backdrop
+* Lists (students, **inactive/archived**, users, audit): FilterPanel + PaginationBar; page-owned `loadFailed` + Retry; `SKIP_ERROR_TOAST` on list GETs (students/users/audit/dashboard)
+* StatusBadge adopted on student profile + user detail; AG Grid status cells use shared `.status-badge*` classes (no Angular cell renderers for badges)
+* User form migrated to Field/Input/Select; **student form + report page remain on legacy controls (follow-up)**
+* Glass surfaces on dashboard/report/profile/form/detail cards; dashboard skeletons via `app-skeleton`
+* Routes: authenticated + top-level 404 via `ErrorPage` (no silent redirect to dashboard)
+* Unit specs: Field, Input, Select, Textarea, FilterPanel, DialogShell, MobileNavDrawer, ThemeService; EmptyState alert role; Skeleton tall; StudentService list toast skip
+* Docs: `08_UI_UX.md` design system + a11y checklist
+
+### Milestone 13 QA bug fixes (BUG-001–011, issues #81–#91) — resolved and closed
+
+* BUG-001 (#81) — Field auto-associates labels with projected Input/Select/Textarea ids (`forId` override kept)
+* BUG-002 (#82) — `StudentService.list` / `listInactive` set `SKIP_ERROR_TOAST`; pages own EmptyState + Retry
+* BUG-003 (#83) — StatusBadge on profile/user-detail; AG Grid reuses global status-badge CSS
+* BUG-004 (#84) — Archived students list FilterPanel wired to existing `listInactive` filters (parity with active list)
+* BUG-005 (#85) — Removed nested `role=dialog` from DialogShell and MobileNavDrawer; CDK names dialogs
+* BUG-006 (#86) — EmptyState error variant uses `role=alert`
+* BUG-007 (#87) — User form on shared primitives; student form + report page migration documented as follow-up
+* BUG-008 (#88) — FilterPanel root `role=search` + `aria-label`
+* BUG-009 (#89) — Skeleton `tall` boolean replaces misleading `className` API
+* BUG-010 (#90) — Unit/a11y specs for M13 primitives + ThemeService + MobileNavDrawer
+* BUG-011 (#91) — Session_context / UI UX docs aligned with implemented behavior
+
+### Backend / Database
+
+* None
+
+---
+
 # Technology Decisions
 
-Unchanged from Milestone 1–11, plus Milestone 12 audit definitions:
+Unchanged from Milestone 1–12, plus Milestone 13 UI polish:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
@@ -446,19 +482,20 @@ Unchanged from Milestone 1–11, plus Milestone 12 audit definitions:
 * Document soft-delete / GCS objects are not cascaded when archiving a student
 * Dashboard: “Left Students” UI = `inactiveStudents` (soft-deleted); new admissions = current UTC calendar month (UI hint: “This month (UTC)”); gender cards active-only; status chart titled **Status Distribution**
 * Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
+* Milestone 13: glass on premium surfaces only; dark mode architecture completed (not full third-party theme skins); custom Tailwind utilities used as HTML classes (not `@apply` in component SCSS — Tailwind v4 limitation); student form / report page Field migration deferred (follow-up after M13)
 
 ---
 
 # Current Objective
 
-Begin Milestone 13 — UI Polish (planning / architecture review before implementation).
+Open and merge PR for Milestone 13 (`milestone/ui-polish`); issues #81–#91 closed.
 
 ---
 
 # Current Branch
 
 ```text
-main
+milestone/ui-polish
 ```
 
 ---
@@ -477,12 +514,13 @@ main
 * Milestone 10 filter export uses `scope` (`ACTIVE` | `ARCHIVED` | `ALL`); active path uses `GET /students` predicates; archived path uses the inactive/deleted query path; `GET /students` itself still excludes soft-deleted rows
 * Milestone 11: dashboard recent rows expose `firstName`/`lastName` (not a computed `fullName`); monthly admissions use portable `EXTRACT(YEAR/MONTH)` for H2 + PostgreSQL compatibility; New Admissions window is UTC (UI discloses it)
 * Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
+* Milestone 13: glass on premium surfaces; dark-mode-ready tokens + ThemeService; mobile CDK nav drawer; 404 ErrorPage; shared FilterPanel/PaginationBar/DialogShell; archived list filters; page-owned list errors; user form on design-system controls; student/report form migration follow-up
 
 ---
 
 # Pending Milestones
 
-* Milestone 13 — UI Polish
+* Milestone 13 — UI Polish (pushed on `milestone/ui-polish`; PR / merge pending)
 * Milestone 14 — Testing
 * Milestone 15 — Production Deployment
 * Milestone 16 — Production Validation
@@ -494,15 +532,15 @@ main
 
 None.
 
-**Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`. Low Windows paging-file memory can cause Surefire fork OOMs; use `-DforkCount=0` if needed locally.
+**Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`. Low Windows paging-file memory can cause Surefire / `ng build` OOMs; use `-DforkCount=0` or free RAM before frontend builds. Prefer targeted `ng test --include=...` batches when memory is tight.
 
 ---
 
 # Next Session Goal
 
-1. Read Milestone 13 scope in `docs/13_DEVELOPMENT_ROADMAP.md`
-2. Produce UI Polish planning / architecture review
-3. Create `milestone/ui-polish` branch after approval
+1. Open PR for `milestone/ui-polish` (issues #81–#91 closed)
+2. Merge Milestone 13 when review passes
+3. Begin Milestone 14 — Testing (or student/report form Field migration follow-up if prioritized)
 
 ---
 

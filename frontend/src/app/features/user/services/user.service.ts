@@ -1,8 +1,9 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { API_PATHS } from '../../../core/constants/api-paths';
+import { SKIP_ERROR_TOAST } from '../../../core/interceptors/error.interceptor';
 import { PageResponse } from '../../../shared/models/page.models';
 import {
   CreateUserRequest,
@@ -36,7 +37,10 @@ export class UserService {
     if (params.sort) {
       httpParams = httpParams.set('sort', params.sort);
     }
-    return this.http.get<PageResponse<ManagedUser>>(this.baseUrl, { params: httpParams });
+    return this.http.get<PageResponse<ManagedUser>>(this.baseUrl, {
+      params: httpParams,
+      context: new HttpContext().set(SKIP_ERROR_TOAST, true),
+    });
   }
 
   getById(id: string): Observable<ManagedUser> {

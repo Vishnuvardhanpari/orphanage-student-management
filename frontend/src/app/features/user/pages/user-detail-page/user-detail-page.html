@@ -1,8 +1,6 @@
 <section class="user-detail">
   <app-page-header title="User details" subtitle="Account profile and status.">
-    <a [routerLink]="paths.users">
-      <app-button variant="secondary">Back to list</app-button>
-    </a>
+    <app-button variant="secondary" [routerLink]="paths.users">Back to list</app-button>
   </app-page-header>
 
   @if (loading()) {
@@ -25,13 +23,10 @@
         <div>
           <dt>Status</dt>
           <dd>
-            <span
-              class="user-detail__badge"
-              [class.user-detail__badge--ok]="u.enabled"
-              [class.user-detail__badge--off]="!u.enabled"
-            >
-              {{ u.enabled ? 'Enabled' : 'Disabled' }}
-            </span>
+            <app-status-badge
+              [tone]="u.enabled ? 'success' : 'inactive'"
+              [label]="u.enabled ? 'Enabled' : 'Disabled'"
+            />
           </dd>
         </div>
         <div>
@@ -57,9 +52,13 @@
       </dl>
 
       <div class="user-detail__actions">
-        <a [routerLink]="[paths.users, u.id, 'edit']">
-          <app-button variant="primary" [disabled]="acting()">Edit</app-button>
-        </a>
+        <app-button
+          variant="primary"
+          [routerLink]="[paths.users, u.id, 'edit']"
+          [disabled]="acting()"
+        >
+          Edit
+        </app-button>
         <app-button
           variant="secondary"
           [disabled]="acting()"

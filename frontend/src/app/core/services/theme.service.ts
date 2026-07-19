@@ -5,7 +5,7 @@ export type ThemeMode = 'light' | 'dark';
 
 /**
  * Manages light/dark theme via the `dark` class on documentElement.
- * Toggle UI deferred to Milestone 13; structure is dark-mode ready.
+ * Persists preference in localStorage; topbar exposes the toggle control.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {

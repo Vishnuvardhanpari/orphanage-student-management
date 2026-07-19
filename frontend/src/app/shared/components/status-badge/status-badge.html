@@ -1,0 +1,10 @@
+<span
+  class="status-badge"
+  [class.status-badge--success]="tone() === 'success'"
+  [class.status-badge--warning]="tone() === 'warning'"
+  [class.status-badge--error]="tone() === 'error'"
+  [class.status-badge--inactive]="tone() === 'inactive'"
+  [class.status-badge--info]="tone() === 'info'"
+>
+  {{ label() }}
+</span>

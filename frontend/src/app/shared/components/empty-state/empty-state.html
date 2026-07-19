@@ -1,4 +1,8 @@
-<div class="empty-state" role="status">
+<div
+  class="empty-state"
+  [class.empty-state--error]="variant() === 'error'"
+  [attr.role]="variant() === 'error' ? 'alert' : 'status'"
+>
   <div class="empty-state__icon" aria-hidden="true">
     <ng-content select="[emptyIcon]" />
   </div>

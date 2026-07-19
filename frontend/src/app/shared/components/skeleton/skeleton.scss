@@ -1,0 +1,45 @@
+@reference "../../../../styles.css";
+
+.skeleton {
+  @apply animate-pulse rounded-lg bg-surface-muted/60;
+}
+
+.skeleton--block {
+  @apply h-4 w-full;
+}
+
+.skeleton--text {
+  @apply h-3 w-full;
+}
+
+.skeleton--text-short {
+  @apply w-2/3;
+}
+
+.skeleton--card {
+  @apply flex flex-col gap-3 rounded-xl border border-surface-border bg-surface-elevated p-4;
+}
+
+.skeleton--card-title {
+  @apply h-5 w-1/3;
+}
+
+.skeleton--chart {
+  @apply flex flex-col gap-3 rounded-xl border border-surface-border bg-surface-elevated p-4;
+}
+
+.skeleton--chart-title {
+  @apply h-5 w-40;
+}
+
+.skeleton--chart-body {
+  @apply h-48 w-full;
+}
+
+.skeleton--table-row {
+  @apply grid grid-cols-3 gap-3 py-2;
+}
+
+.skeleton--tall {
+  @apply h-32;
+}

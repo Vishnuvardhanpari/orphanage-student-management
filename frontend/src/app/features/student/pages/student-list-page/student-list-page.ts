@@ -25,7 +25,12 @@ import { APP_PATHS } from '../../../../core/constants/routes';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Button } from '../../../../shared/components/button/button';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { Field } from '../../../../shared/components/field/field';
+import { FilterPanel } from '../../../../shared/components/filter-panel/filter-panel';
+import { Input } from '../../../../shared/components/input/input';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { PaginationBar } from '../../../../shared/components/pagination-bar/pagination-bar';
+import { Select } from '../../../../shared/components/select/select';
 import { emptyPage } from '../../../../shared/models/page.models';
 import {
   ExportReportDialog,
@@ -98,6 +103,11 @@ export function ageFromDateOfBirth(dateOfBirth: string, today = new Date()): num
     Button,
     AgGridAngular,
     ReactiveFormsModule,
+    Field,
+    FilterPanel,
+    Input,
+    Select,
+    PaginationBar,
   ],
   templateUrl: './student-list-page.html',
   styleUrl: './student-list-page.scss',
@@ -237,8 +247,8 @@ export class StudentListPage implements OnInit {
         }
         const active = p.value === StudentStatus.Active;
         const cls = active
-          ? 'student-status-badge student-status-badge--active'
-          : 'student-status-badge student-status-badge--inactive';
+          ? 'status-badge status-badge--success'
+          : 'status-badge status-badge--inactive';
         return `<span class="${cls}">${active ? 'Active' : 'Inactive'}</span>`;
       },
       comparator: serverSortComparator,
@@ -361,8 +371,7 @@ export class StudentListPage implements OnInit {
         sort: this.sort(),
       })
       .pipe(
-        // The global errorInterceptor owns the failure toast; here we only
-        // recover with an empty page and flag the error state for the UI.
+        // List requests set SKIP_ERROR_TOAST; this page owns EmptyState + Retry.
         catchError(() => {
           this.loadFailed.set(true);
           return of(emptyPage<StudentSummary>(this.pageSize()));

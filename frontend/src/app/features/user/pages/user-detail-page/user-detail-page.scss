@@ -9,7 +9,11 @@
 }
 
 .user-detail__card {
-  @apply rounded-xl border border-surface-border bg-surface-elevated p-6;
+  @apply rounded-xl border p-6;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .user-detail__grid {
@@ -21,18 +25,6 @@
 
   dd {
     @apply mt-1 text-sm text-surface-fg;
-  }
-}
-
-.user-detail__badge {
-  @apply inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold;
-
-  &--ok {
-    @apply bg-accent-500/15 text-accent-700;
-  }
-
-  &--off {
-    @apply bg-inactive-500/15 text-inactive-500;
   }
 }
 

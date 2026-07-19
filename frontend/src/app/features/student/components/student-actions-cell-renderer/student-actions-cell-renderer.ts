@@ -95,10 +95,10 @@ type StudentActionsParams = ICellRendererParams<
       background: var(--color-primary-50, #eff6ff);
     }
     .student-grid-actions__btn--danger {
-      color: var(--color-danger-700, #b91c1c);
+      color: var(--color-error-700, #b91c1c);
     }
     .student-grid-actions__btn--danger:hover {
-      background: var(--color-danger-50, #fef2f2);
+      background: var(--color-error-50, #fef2f2);
     }
     .student-grid-actions__btn:focus-visible {
       outline: 2px solid var(--color-primary-500, #3b82f6);

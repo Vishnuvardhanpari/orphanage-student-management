@@ -7,6 +7,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
+import { DEFAULT_DIALOG_CONFIG } from '@angular/cdk/dialog';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -31,5 +32,11 @@ export const appConfig: ApplicationConfig = {
       closeButton: true,
       newestOnTop: true,
     }),
+    {
+      provide: DEFAULT_DIALOG_CONFIG,
+      useValue: {
+        backdropClass: 'oms-dialog-backdrop',
+      },
+    },
   ],
 };

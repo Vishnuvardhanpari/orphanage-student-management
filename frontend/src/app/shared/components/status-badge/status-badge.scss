@@ -1,0 +1,6 @@
+@reference "../../../../styles.css";
+
+/* Visual styles live in global `.status-badge*` (styles.css) for AG Grid reuse. */
+:host {
+  @apply inline-flex;
+}

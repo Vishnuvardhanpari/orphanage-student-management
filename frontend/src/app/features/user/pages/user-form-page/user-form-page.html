@@ -1,4 +1,4 @@
-<section class="user-form">
+<section class="user-form oms-page">
   <app-page-header
     [title]="isEdit() ? 'Edit user' : 'Add user'"
     [subtitle]="
@@ -7,61 +7,65 @@
         : 'Pre-provision a staff or admin account for login.'
     "
   >
-    <a [routerLink]="paths.users">
-      <app-button variant="secondary">Back to list</app-button>
-    </a>
+    <app-button variant="secondary" [routerLink]="paths.users">Back to list</app-button>
   </app-page-header>
 
   @if (loading()) {
     <p class="user-form__loading">Loading user…</p>
   } @else {
     <form class="user-form__card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <label class="user-form__field">
-        <span>Username</span>
-        <input class="user-form__input" type="text" formControlName="username" autocomplete="username" />
-        @if (form.controls.username.touched && form.controls.username.invalid) {
-          <span class="user-form__error">Username is required.</span>
-        }
-      </label>
+      <app-field
+        label="Username"
+        [error]="
+          form.controls.username.touched && form.controls.username.invalid
+            ? 'Username is required.'
+            : ''
+        "
+      >
+        <app-input type="text" formControlName="username" autocomplete="username" />
+      </app-field>
 
-      <label class="user-form__field">
-        <span>Email</span>
-        <input class="user-form__input" type="email" formControlName="email" autocomplete="email" />
-        @if (form.controls.email.touched && form.controls.email.invalid) {
-          <span class="user-form__error">Enter a valid email.</span>
-        }
-      </label>
+      <app-field
+        label="Email"
+        [error]="
+          form.controls.email.touched && form.controls.email.invalid
+            ? 'Enter a valid email.'
+            : ''
+        "
+      >
+        <app-input type="email" formControlName="email" autocomplete="email" />
+      </app-field>
 
-      <label class="user-form__field">
-        <span>Role</span>
-        <select class="user-form__input" formControlName="role">
+      <app-field label="Role">
+        <app-select formControlName="role">
           <option [value]="roles.Staff">Staff</option>
           <option [value]="roles.Admin">Admin</option>
-        </select>
-      </label>
+        </app-select>
+      </app-field>
 
       @if (!isEdit()) {
-        <label class="user-form__field">
-          <span>Auth provider</span>
-          <select class="user-form__input" formControlName="authProvider">
+        <app-field label="Auth provider">
+          <app-select formControlName="authProvider">
             <option [value]="providers.Local">Local (password)</option>
             <option [value]="providers.Google">Google only</option>
-          </select>
-        </label>
+          </app-select>
+        </app-field>
 
         @if (form.controls.authProvider.value === providers.Local) {
-          <label class="user-form__field">
-            <span>Password</span>
-            <input
-              class="user-form__input"
+          <app-field
+            label="Password"
+            [error]="
+              form.controls.password.touched && form.controls.password.invalid
+                ? 'Password must be at least 8 characters.'
+                : ''
+            "
+          >
+            <app-input
               type="password"
               formControlName="password"
               autocomplete="new-password"
             />
-            @if (form.controls.password.touched && form.controls.password.invalid) {
-              <span class="user-form__error">Password must be at least 8 characters.</span>
-            }
-          </label>
+          </app-field>
         }
       }
 
