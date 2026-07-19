@@ -496,13 +496,19 @@ Must not break existing functionality
 
 GitHub Actions Pipeline
 
+Workflow: `.github/workflows/ci-tests.yml`
+
 Run
 
-Backend Tests
+Backend Tests (`mvn verify` + JaCoCo ≥80% line coverage)
 
 ↓
 
-Frontend Tests
+Frontend Unit Tests (`npm run test:ci` + Karma ≥80% statements/lines)
+
+↓
+
+Cypress E2E (critical paths against local Postgres + API + `ng serve`)
 
 ↓
 
@@ -510,9 +516,14 @@ Build
 
 ↓
 
-Deploy
+Deploy (Milestone 15)
 
 Deployment only proceeds if all tests pass.
+
+### Integration test database (Milestone 14 decision)
+
+Backend `@SpringBootTest` / MockMvc suites use **H2 in PostgreSQL mode** (`application-test.yml`).
+Testcontainers is deferred; introduce only if H2/Postgres divergence causes production defects.
 
 ---
 

@@ -92,20 +92,21 @@ describe('StudentListPage', () => {
    * number inputs this is NumberValueAccessor, which emits number | null).
    */
   function typeInto(controlName: string, value: string): void {
-    const input = fixture.nativeElement.querySelector(
-      `input[formControlName="${controlName}"]`,
-    ) as HTMLInputElement;
-    input.value = value;
-    input.dispatchEvent(new Event('input'));
+    const host = fixture.nativeElement.querySelector(
+      `[formControlName="${controlName}"]`,
+    ) as HTMLElement | null;
+    const input = (host?.matches?.('input')
+      ? host
+      : host?.querySelector('input')) as HTMLInputElement | null;
+    expect(input).withContext(`input for ${controlName}`).not.toBeNull();
+    input!.value = value;
+    input!.dispatchEvent(new Event('input'));
     fixture.detectChanges();
   }
 
   /** Submits the filter form the way the Apply button does. */
   function submitFilters(): void {
-    const form = fixture.nativeElement.querySelector(
-      'form.student-list__filters',
-    ) as HTMLFormElement;
-    form.dispatchEvent(new Event('submit'));
+    page.applyFilters();
     fixture.detectChanges();
   }
 

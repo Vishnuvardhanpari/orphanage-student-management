@@ -31,7 +31,10 @@ export class DialogShell implements AfterViewInit {
     if (!label || !this.dialogRef) {
       return;
     }
-    const host = this.dialogRef.overlayRef.hostElement;
+    const host = this.dialogRef.overlayRef?.hostElement;
+    if (!host) {
+      return;
+    }
     const container =
       host.querySelector<HTMLElement>('.cdk-dialog-container') ??
       host.querySelector<HTMLElement>('[role="dialog"]');

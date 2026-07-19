@@ -14,6 +14,7 @@
           type="text"
           formControlName="username"
           autocomplete="username"
+          data-cy="login-username"
           [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
         />
         @if (form.controls.username.touched && form.controls.username.invalid) {
@@ -29,6 +30,7 @@
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
             autocomplete="current-password"
+            data-cy="login-password"
             [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
           />
           <button
@@ -54,6 +56,7 @@
         variant="primary"
         [fullWidth]="true"
         [disabled]="submitting()"
+        data-cy="login-submit"
       >
         {{ submitting() ? 'Signing in…' : 'Sign in' }}
       </app-button>
