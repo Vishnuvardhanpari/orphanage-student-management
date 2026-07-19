@@ -522,7 +522,7 @@ Milestone 15 — Production Deployment (next)
 
 ### Milestone 14 closure
 
-* Merged to `main` via PR (see closure commit for number)
+* Merged to `main` via PR #93 (`772f39f`)
 
 ---
 
