@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 13 — UI Polish (QA BUG-001–011 fixed; pushed on `milestone/ui-polish`; PR pending)
+Milestone 14 — Testing (next)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 13 — UI Polish & Design System
+Milestone 13 — UI Polish & Design System (completed and closed; merged to `main`)
 
 ---
 
@@ -436,7 +436,7 @@ Milestone 13 — UI Polish & Design System
 
 ---
 
-## Milestone 13 — UI Polish & Design System (QA BUG-001–011 addressed on `milestone/ui-polish`)
+## Milestone 13 — UI Polish & Design System (completed and closed; merged to `main` via PR #92)
 
 ### Frontend
 
@@ -466,6 +466,11 @@ Milestone 13 — UI Polish & Design System
 * BUG-010 (#90) — Unit/a11y specs for M13 primitives + ThemeService + MobileNavDrawer
 * BUG-011 (#91) — Session_context / UI UX docs aligned with implemented behavior
 
+### Milestone 13 closure
+
+* Issues #81–#91 closed
+* Merged to `main` via PR #92 (`c53de07`)
+
 ### Backend / Database
 
 * None
@@ -488,14 +493,14 @@ Unchanged from Milestone 1–12, plus Milestone 13 UI polish:
 
 # Current Objective
 
-Open and merge PR for Milestone 13 (`milestone/ui-polish`); issues #81–#91 closed.
+Begin Milestone 14 — Testing.
 
 ---
 
 # Current Branch
 
 ```text
-milestone/ui-polish
+main
 ```
 
 ---
@@ -507,7 +512,7 @@ milestone/ui-polish
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–12 completed and merged to `main`
+* Milestone 5–13 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 * Milestone 10: PDF docs are references only; image docs embedded inline; report generation writes persistent `audit_logs` (M12) and keeps SLF4J for ops; sync PDF download (no job queue); PDFs not persisted to GCS
@@ -520,11 +525,11 @@ milestone/ui-polish
 
 # Pending Milestones
 
-* Milestone 13 — UI Polish (pushed on `milestone/ui-polish`; PR / merge pending)
 * Milestone 14 — Testing
 * Milestone 15 — Production Deployment
 * Milestone 16 — Production Validation
 * … (see roadmap)
+* Follow-up (non-blocking): migrate student form + report page to Field/Input/Select/Textarea
 
 ---
 
@@ -538,9 +543,8 @@ None.
 
 # Next Session Goal
 
-1. Open PR for `milestone/ui-polish` (issues #81–#91 closed)
-2. Merge Milestone 13 when review passes
-3. Begin Milestone 14 — Testing (or student/report form Field migration follow-up if prioritized)
+1. Plan Milestone 14 — Testing coverage targets and critical-path suites
+2. Optionally schedule student/report form Field migration as a small follow-up PR
 
 ---
 
