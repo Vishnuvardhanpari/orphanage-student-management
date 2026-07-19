@@ -1,0 +1,15 @@
+<input
+  class="oms-control"
+  [attr.id]="id()"
+  [type]="type()"
+  [placeholder]="placeholder()"
+  [value]="value()"
+  [disabled]="disabled()"
+  [attr.autocomplete]="autocomplete()"
+  [attr.min]="min()"
+  [attr.max]="max()"
+  [attr.step]="step()"
+  [attr.aria-label]="ariaLabel()"
+  (input)="onInput($event)"
+  (blur)="onBlur()"
+/>

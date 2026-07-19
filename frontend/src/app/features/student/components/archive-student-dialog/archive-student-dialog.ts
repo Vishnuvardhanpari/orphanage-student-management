@@ -2,6 +2,10 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../shared/components/button/button';
+import { DialogShell } from '../../../../shared/components/dialog-shell/dialog-shell';
+import { Field } from '../../../../shared/components/field/field';
+import { Input } from '../../../../shared/components/input/input';
+import { Textarea } from '../../../../shared/components/textarea/textarea';
 import { SoftDeleteExitDetails } from '../../models/student.models';
 
 export interface ArchiveStudentDialogData {
@@ -23,7 +27,7 @@ export type ArchiveStudentResult = SoftDeleteExitDetails;
 @Component({
   selector: 'app-archive-student-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, Button],
+  imports: [ReactiveFormsModule, Button, DialogShell, Field, Input, Textarea],
   templateUrl: './archive-student-dialog.html',
   styleUrl: './archive-student-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

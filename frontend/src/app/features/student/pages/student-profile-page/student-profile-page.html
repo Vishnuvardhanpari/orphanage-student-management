@@ -45,7 +45,10 @@
   </app-page-header>
 
   @if (loading()) {
-    <p class="student-profile__loading">Loading…</p>
+    <div class="student-profile__loading" aria-busy="true" aria-label="Loading student profile">
+      <app-skeleton variant="card" />
+      <app-skeleton variant="card" />
+    </div>
   } @else if (student(); as s) {
     <div class="student-profile__hero">
       <div class="student-profile__photo" aria-label="Student photograph">
@@ -61,13 +64,10 @@
       <div class="student-profile__summary">
         <h2>{{ s.firstName }}{{ s.lastName ? ' ' + s.lastName : '' }}</h2>
         <p>{{ s.admissionNumber }}</p>
-        <span
-          class="student-profile__badge"
-          [class.student-profile__badge--ok]="s.status === 'ACTIVE'"
-          [class.student-profile__badge--off]="s.status !== 'ACTIVE'"
-        >
-          {{ statusLabel(s.status) }}
-        </span>
+        <app-status-badge
+          [tone]="s.status === 'ACTIVE' ? 'success' : 'inactive'"
+          [label]="statusLabel(s.status)"
+        />
       </div>
     </div>
 

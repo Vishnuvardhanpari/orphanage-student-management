@@ -1,0 +1,13 @@
+@reference "../../../../styles.css";
+
+.pagination-bar {
+  @apply flex flex-wrap items-center justify-between gap-3;
+}
+
+.pagination-bar__meta {
+  @apply text-sm text-surface-muted-fg;
+}
+
+.pagination-bar__actions {
+  @apply flex gap-2;
+}

@@ -1,0 +1,11 @@
+<select
+  class="oms-control"
+  [attr.id]="id()"
+  [value]="value()"
+  [disabled]="disabled()"
+  [attr.aria-label]="ariaLabel()"
+  (change)="onSelect($event)"
+  (blur)="onBlur()"
+>
+  <ng-content />
+</select>

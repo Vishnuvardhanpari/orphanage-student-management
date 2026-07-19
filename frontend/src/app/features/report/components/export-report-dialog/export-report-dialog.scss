@@ -1,21 +1,9 @@
 @reference "../../../../../styles.css";
 
-.export-dialog {
-  @apply min-w-[20rem] max-w-md rounded-xl border border-surface-border bg-surface-elevated p-6 shadow-lg;
-}
-
-.export-dialog__title {
-  @apply m-0 text-lg font-semibold text-surface-fg;
-}
-
 .export-dialog__message {
-  @apply mt-2 mb-3 text-sm text-surface-muted-fg;
+  @apply m-0;
 }
 
 .export-dialog__details {
-  @apply mb-6 list-disc space-y-1 pl-5 text-sm text-surface-fg;
-}
-
-.export-dialog__actions {
-  @apply flex justify-end gap-2;
+  @apply mt-3 mb-0 list-disc space-y-1 pl-5 text-sm text-surface-fg;
 }

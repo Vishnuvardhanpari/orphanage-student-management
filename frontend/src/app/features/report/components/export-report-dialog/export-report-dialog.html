@@ -1,5 +1,5 @@
-<div class="export-dialog" role="dialog" [attr.aria-label]="data.title">
-  <h2 class="export-dialog__title">{{ data.title }}</h2>
+<app-dialog-shell [ariaLabel]="data.title">
+  <h2 dialogTitle>{{ data.title }}</h2>
   <p class="export-dialog__message">{{ data.message }}</p>
 
   @if (data.details?.length) {
@@ -10,10 +10,10 @@
     </ul>
   }
 
-  <div class="export-dialog__actions">
+  <div dialogActions>
     <app-button type="button" variant="secondary" (pressed)="cancel()">Cancel</app-button>
     <app-button type="button" variant="primary" (pressed)="confirm()">
       {{ data.confirmLabel || 'Generate PDF' }}
     </app-button>
   </div>
-</div>
+</app-dialog-shell>

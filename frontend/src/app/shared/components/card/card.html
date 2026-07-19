@@ -1,0 +1,12 @@
+<div
+  class="card"
+  [class.card--elevated]="variant() === 'elevated'"
+  [class.card--glass]="variant() === 'glass'"
+  [class.card--muted]="variant() === 'muted'"
+  [class.card--pad-sm]="padding() === 'sm'"
+  [class.card--pad-md]="padding() === 'md'"
+  [class.card--pad-lg]="padding() === 'lg'"
+  [class.card--interactive]="interactive()"
+>
+  <ng-content />
+</div>

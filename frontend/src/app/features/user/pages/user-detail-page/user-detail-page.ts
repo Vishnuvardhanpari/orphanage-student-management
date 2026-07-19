@@ -8,13 +8,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import { APP_PATHS } from '../../../../core/constants/routes';
 import { AuthService } from '../../../auth/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Button } from '../../../../shared/components/button/button';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import {
   ConfirmDialog,
   ConfirmDialogData,
@@ -29,7 +30,7 @@ import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-user-detail-page',
   standalone: true,
-  imports: [PageHeader, Button, RouterLink, DatePipe],
+  imports: [PageHeader, Button, DatePipe, StatusBadge],
   templateUrl: './user-detail-page.html',
   styleUrl: './user-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

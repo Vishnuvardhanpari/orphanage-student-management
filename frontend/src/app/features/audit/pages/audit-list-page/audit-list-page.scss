@@ -1,23 +1,5 @@
 @reference "../../../../../styles.css";
 
-.audit-list {
-  @apply flex flex-col gap-4;
-}
-
-.audit-list__filters {
-  @apply grid gap-3 rounded-xl border border-surface-border bg-surface-elevated p-4
-    sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-}
-
-.audit-list__field {
-  @apply flex flex-col gap-1.5 text-sm font-medium text-surface-fg;
-}
-
-.audit-list__input {
-  @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal
-    text-surface-fg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
-}
-
 .audit-list__filter-actions {
   @apply flex items-end gap-2;
 }
@@ -27,17 +9,5 @@
 }
 
 .audit-list__grid--loading {
-  @apply opacity-60;
-}
-
-.audit-list__pager {
-  @apply flex flex-wrap items-center justify-between gap-3;
-}
-
-.audit-list__pager-meta {
-  @apply text-sm text-surface-muted-fg;
-}
-
-.audit-list__pager-actions {
-  @apply flex gap-2;
+  @apply pointer-events-none opacity-60;
 }

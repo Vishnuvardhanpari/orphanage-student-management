@@ -11,20 +11,23 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { APP_PATHS } from '../../../../core/constants/routes';
 import { UserRole } from '../../../../core/enums/user-role';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Button } from '../../../../shared/components/button/button';
+import { Field } from '../../../../shared/components/field/field';
+import { Input } from '../../../../shared/components/input/input';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { Select } from '../../../../shared/components/select/select';
 import { AuthProvider } from '../../models/user.models';
 import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-user-form-page',
   standalone: true,
-  imports: [PageHeader, Button, ReactiveFormsModule, RouterLink],
+  imports: [PageHeader, Button, ReactiveFormsModule, Field, Input, Select],
   templateUrl: './user-form-page.html',
   styleUrl: './user-form-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

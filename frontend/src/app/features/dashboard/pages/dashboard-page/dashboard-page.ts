@@ -17,6 +17,7 @@ import { APP_PATHS } from '../../../../core/constants/routes';
 import { Button } from '../../../../shared/components/button/button';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { Skeleton } from '../../../../shared/components/skeleton/skeleton';
 import { echarts } from '../../echarts.config';
 import {
   DashboardGenderCount,
@@ -59,6 +60,7 @@ const CHART_COLOR_FALLBACKS = {
     PageHeader,
     Button,
     EmptyState,
+    Skeleton,
     RouterLink,
     DatePipe,
     NgxEchartsDirective,

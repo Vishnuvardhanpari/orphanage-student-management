@@ -266,17 +266,66 @@ Use:
 
 Keyboard Navigation
 
-Responsive Layout
+Skip link to main content
+
+Responsive Layout (including mobile navigation drawer)
 
 Proper Labels
 
 High Contrast
 
+Focus-visible rings on interactive controls
+
+`prefers-reduced-motion` respected for animations
+
+---
+
+# Design System (Milestone 13)
+
+## Tokens
+
+CSS variables in `frontend/src/styles.css` (`@theme` + `.dark`):
+
+* Primary blue, accent/success green, warning, error, inactive
+* Surface / glass / overlay colors
+* Dark mode surface + status token overrides
+
+## Shared components
+
+* Button, PageHeader, EmptyState (default/error), ConfirmDialog
+* Card (elevated / glass / muted), Skeleton, DialogShell
+* Field, Input, Select, Textarea
+* StatusBadge, FilterPanel, PaginationBar, ErrorPage (404)
+* MobileNavDrawer (CDK dialog from topbar hamburger)
+
+## Patterns
+
+* Glassmorphism on premium surfaces: shell, cards, dialogs, dashboard widgets, filter panels
+* Lists (active students, archived students, users, audit) use FilterPanel + PaginationBar
+* Page-owned load errors: EmptyState (error/`role=alert`) + Retry; list GETs use `SKIP_ERROR_TOAST`
+* StatusBadge on profile/user-detail; AG Grid cells reuse global `.status-badge*` classes
+* User form uses Field/Input/Select; student form and report page migration is follow-up
+* Theme toggle via ThemeService (`dark` class on `documentElement`)
+* AG Grid Quartz receives dark CSS variable overrides; toastr shadow softened in dark mode
+* DialogShell / MobileNavDrawer do not nest `role=dialog` (CDK owns dialog a11y)
+* FilterPanel root uses `role=search`
+* Skeleton uses typed `tall` boolean (not free-form className)
+
+## Manual verification checklist
+
+* Desktop / tablet / mobile layouts; hamburger opens nav and closes on route/Escape
+* Keyboard: skip link, focus rings, dialog focus trap; field labels associate with controls
+* Light and dark theme on dashboard, lists, dialogs, forms
+* Loading skeletons and empty/error states on major pages
+* Unknown route shows 404 (not silent redirect to dashboard)
+* Archived students filters parity with active list
+* Student/user list load failure: EmptyState only (no interceptor toast)
+
 ---
 
 # Future UI Improvements
 
-* Dark Mode refinements
+* Dark Mode refinements for third-party widgets (full AG Grid / toastr themes)
 * Multi-language Support
 * Drag-and-drop file upload
-* Mobile-friendly optimized views
+* Further mobile density optimizations

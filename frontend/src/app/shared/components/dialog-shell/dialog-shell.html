@@ -1,0 +1,14 @@
+<div
+  class="dialog-shell"
+  [class.dialog-shell--lg]="size() === 'lg'"
+>
+  <div class="dialog-shell__title">
+    <ng-content select="[dialogTitle]" />
+  </div>
+  <div class="dialog-shell__body">
+    <ng-content />
+  </div>
+  <div class="dialog-shell__actions">
+    <ng-content select="[dialogActions]" />
+  </div>
+</div>

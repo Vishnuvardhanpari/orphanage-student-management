@@ -81,6 +81,7 @@ export class StudentService {
     }
     return this.http.get<PageResponse<StudentSummary>>(this.baseUrl, {
       params: httpParams,
+      context: new HttpContext().set(SKIP_ERROR_TOAST, true),
     });
   }
 
@@ -249,6 +250,7 @@ export class StudentService {
     }
     return this.http.get<PageResponse<StudentSummary>>(`${this.baseUrl}/inactive`, {
       params: httpParams,
+      context: new HttpContext().set(SKIP_ERROR_TOAST, true),
     });
   }
 

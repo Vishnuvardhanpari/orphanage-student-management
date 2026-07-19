@@ -1,0 +1,21 @@
+@reference "../../../../styles.css";
+
+:host {
+  @apply block;
+}
+
+.filter-panel__grid {
+  @apply grid gap-3;
+}
+
+.filter-panel__grid--2 {
+  @apply sm:grid-cols-2;
+}
+
+.filter-panel__grid--3 {
+  @apply sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.filter-panel__grid--4 {
+  @apply sm:grid-cols-2 lg:grid-cols-4;
+}

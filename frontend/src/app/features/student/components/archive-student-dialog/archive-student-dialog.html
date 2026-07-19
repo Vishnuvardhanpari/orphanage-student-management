@@ -1,49 +1,45 @@
-<div class="archive-dialog" role="dialog" aria-label="Archive student">
-  <h2 class="archive-dialog__title">Archive student</h2>
+<app-dialog-shell ariaLabel="Archive student" size="lg">
+  <h2 dialogTitle>Archive student</h2>
   <p class="archive-dialog__message">
     Archive {{ data.studentName }} ({{ data.admissionNumber }})? The record will move to
     Archived Students and can be restored by an administrator. You can optionally record
     exit details below.
   </p>
 
-  <form class="archive-dialog__form" [formGroup]="form" (ngSubmit)="confirm()">
-    <label class="archive-dialog__field">
-      <span>Exit date <span class="archive-dialog__optional">(optional)</span></span>
-      <input
+  <form
+    class="archive-dialog__form"
+    [formGroup]="form"
+  >
+    <app-field label="Exit date (optional)">
+      <app-input
         type="date"
         formControlName="exitDate"
         [max]="today"
         [min]="data.admissionDate"
-        class="archive-dialog__input"
       />
-    </label>
-    <label class="archive-dialog__field">
-      <span>Exit reason <span class="archive-dialog__optional">(optional)</span></span>
-      <input
+    </app-field>
+    <app-field label="Exit reason (optional)">
+      <app-input
         type="text"
         formControlName="exitReason"
         placeholder="e.g. Family relocated"
-        maxlength="255"
-        class="archive-dialog__input"
       />
-    </label>
-    <label class="archive-dialog__field">
-      <span>Exit remarks <span class="archive-dialog__optional">(optional)</span></span>
-      <textarea
+    </app-field>
+    <app-field label="Exit remarks (optional)">
+      <app-textarea
         formControlName="exitRemarks"
-        rows="3"
+        [rows]="3"
         placeholder="Additional notes"
-        class="archive-dialog__input archive-dialog__input--textarea"
-      ></textarea>
-    </label>
+      />
+    </app-field>
 
     @if (error()) {
       <p class="archive-dialog__error" role="alert">{{ error() }}</p>
     }
-
-    <div class="archive-dialog__actions">
-      <app-button type="button" variant="secondary" (pressed)="cancel()">Cancel</app-button>
-      <app-button type="submit" variant="danger">Archive</app-button>
-    </div>
   </form>
-</div>
+
+  <div dialogActions>
+    <app-button type="button" variant="secondary" (pressed)="cancel()">Cancel</app-button>
+    <app-button type="button" variant="danger" (pressed)="confirm()">Archive</app-button>
+  </div>
+</app-dialog-shell>

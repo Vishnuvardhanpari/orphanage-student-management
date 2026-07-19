@@ -201,6 +201,46 @@ describe('StudentInactiveListPage', () => {
     expect(studentService.listInactive).toHaveBeenCalled();
   });
 
+  it('applies filters on Apply and reloads from page 0', async () => {
+    await setup();
+    studentService.listInactive.calls.reset();
+    page.page.set(2);
+
+    page.filterForm.patchValue({ search: 'meera', school: 'Lakeview' });
+    page.applyFilters();
+
+    expect(page.page()).toBe(0);
+    expect(page.filtersActive()).toBeTrue();
+    expect(studentService.listInactive).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        search: 'meera',
+        school: 'Lakeview',
+        page: 0,
+        size: 20,
+        sort: 'deletedDate,desc',
+      }),
+    );
+  });
+
+  it('clears filters and reloads', async () => {
+    await setup();
+    page.filterForm.patchValue({ search: 'meera' });
+    page.applyFilters();
+    studentService.listInactive.calls.reset();
+
+    page.clearFilters();
+
+    expect(page.filterForm.controls.search.value).toBe('');
+    expect(studentService.listInactive).toHaveBeenCalledWith(
+      jasmine.objectContaining({ page: 0, size: 20, sort: 'deletedDate,desc' }),
+    );
+    const args = studentService.listInactive.calls.mostRecent().args[0] as Record<
+      string,
+      unknown
+    >;
+    expect(args['search']).toBeUndefined();
+  });
+
   it('does not restore when the confirmation dialog is cancelled', async () => {
     await setup();
     dialog.open.and.returnValue({ closed: of(false) } as never);

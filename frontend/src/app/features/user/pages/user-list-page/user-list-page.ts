@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   ColDef,
@@ -23,7 +23,12 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { AuthService } from '../../../auth/services/auth.service';
 import { Button } from '../../../../shared/components/button/button';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { Field } from '../../../../shared/components/field/field';
+import { FilterPanel } from '../../../../shared/components/filter-panel/filter-panel';
+import { Input } from '../../../../shared/components/input/input';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { PaginationBar } from '../../../../shared/components/pagination-bar/pagination-bar';
+import { Select } from '../../../../shared/components/select/select';
 import {
   ConfirmDialog,
   ConfirmDialogData,
@@ -38,6 +43,7 @@ import {
 } from '../../components/user-actions-cell-renderer/user-actions-cell-renderer';
 import { ManagedUser } from '../../models/user.models';
 import { UserService } from '../../services/user.service';
+import { emptyPage } from '../../../../shared/models/page.models';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -62,7 +68,11 @@ const SORT_FIELD_MAP: Record<string, string> = {
     Button,
     AgGridAngular,
     ReactiveFormsModule,
-    RouterLink,
+    Field,
+    FilterPanel,
+    Input,
+    Select,
+    PaginationBar,
   ],
   templateUrl: './user-list-page.html',
   styleUrl: './user-list-page.scss',
@@ -79,6 +89,7 @@ export class UserListPage implements OnInit {
   private gridApi?: GridApi<ManagedUser>;
 
   readonly loading = signal(false);
+  readonly loadFailed = signal(false);
   readonly users = signal<ManagedUser[]>([]);
   readonly totalElements = signal(0);
   readonly page = signal(0);
@@ -223,6 +234,7 @@ export class UserListPage implements OnInit {
   loadUsers(): void {
     this.syncGridContext();
     this.loading.set(true);
+    this.loadFailed.set(false);
     const filters = this.filterForm.getRawValue();
     const enabled =
       filters.enabled === '' ? undefined : filters.enabled === 'true';
@@ -237,18 +249,9 @@ export class UserListPage implements OnInit {
         sort: this.sort(),
       })
       .pipe(
-        catchError((err) => {
-          this.notifications.error(err?.error?.message || 'Failed to load users.');
-          return of({
-            content: [],
-            totalElements: 0,
-            totalPages: 0,
-            size: this.pageSize(),
-            number: 0,
-            first: true,
-            last: true,
-            empty: true,
-          });
+        catchError(() => {
+          this.loadFailed.set(true);
+          return of(emptyPage<ManagedUser>(this.pageSize()));
         }),
         finalize(() => this.loading.set(false)),
       )

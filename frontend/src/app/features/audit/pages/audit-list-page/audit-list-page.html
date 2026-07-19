@@ -1,64 +1,55 @@
-<section class="audit-list">
+<section class="audit-list oms-page">
   <app-page-header
     title="Audit Logs"
     subtitle="Immutable history of important business operations."
   />
 
-  <form class="audit-list__filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
-    <label class="audit-list__field">
-      <span>Search</span>
-      <input
-        type="search"
-        formControlName="search"
-        placeholder="Description or username"
-        class="audit-list__input"
-      />
-    </label>
-    <label class="audit-list__field">
-      <span>Module</span>
-      <select formControlName="module" class="audit-list__input">
-        <option value="">All</option>
-        @for (m of modules; track m) {
-          <option [value]="m">{{ m }}</option>
-        }
-      </select>
-    </label>
-    <label class="audit-list__field">
-      <span>Action</span>
-      <select formControlName="action" class="audit-list__input">
-        <option value="">All</option>
-        @for (a of actions; track a) {
-          <option [value]="a">{{ a }}</option>
-        }
-      </select>
-    </label>
-    <label class="audit-list__field">
-      <span>Username</span>
-      <input
-        type="text"
-        formControlName="username"
-        placeholder="Exact username"
-        class="audit-list__input"
-      />
-    </label>
-    <label class="audit-list__field">
-      <span>From</span>
-      <input type="date" formControlName="from" class="audit-list__input" />
-    </label>
-    <label class="audit-list__field">
-      <span>To</span>
-      <input type="date" formControlName="to" class="audit-list__input" />
-    </label>
-    <div class="audit-list__filter-actions">
-      <app-button type="submit" variant="primary" size="sm">Apply</app-button>
-      <app-button type="button" variant="secondary" size="sm" (pressed)="clearFilters()">
-        Clear
-      </app-button>
-    </div>
+  <form [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <app-filter-panel ariaLabel="Audit log filters" columns="3">
+      <app-field label="Search">
+        <app-input
+          type="search"
+          formControlName="search"
+          placeholder="Description or username"
+        />
+      </app-field>
+      <app-field label="Module">
+        <app-select formControlName="module">
+          <option value="">All</option>
+          @for (m of modules; track m) {
+            <option [value]="m">{{ m }}</option>
+          }
+        </app-select>
+      </app-field>
+      <app-field label="Action">
+        <app-select formControlName="action">
+          <option value="">All</option>
+          @for (a of actions; track a) {
+            <option [value]="a">{{ a }}</option>
+          }
+        </app-select>
+      </app-field>
+      <app-field label="Username">
+        <app-input type="text" formControlName="username" placeholder="Exact username" />
+      </app-field>
+      <app-field label="From">
+        <app-input type="date" formControlName="from" />
+      </app-field>
+      <app-field label="To">
+        <app-input type="date" formControlName="to" />
+      </app-field>
+      <div class="audit-list__filter-actions">
+        <app-button type="submit" variant="primary" size="sm">Apply</app-button>
+        <app-button type="button" variant="secondary" size="sm" (pressed)="clearFilters()">
+          Clear
+        </app-button>
+      </div>
+    </app-filter-panel>
   </form>
 
   @if (!loading() && loadFailed()) {
     <app-empty-state
+      variant="error"
       title="Unable to load audit logs"
       description="Something went wrong while loading audit history. Please try again."
     >
@@ -90,31 +81,14 @@
       />
     </div>
 
-    <div class="audit-list__pager">
-      <span class="audit-list__pager-meta">
-        {{ totalElements() }} event{{ totalElements() === 1 ? '' : 's' }} · Page
-        {{ page() + 1 }}
-      </span>
-      <div class="audit-list__pager-actions">
-        <app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="page() === 0 || loading()"
-          (pressed)="prevPage()"
-        >
-          Previous
-        </app-button>
-        <app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="(page() + 1) * pageSize() >= totalElements() || loading()"
-          (pressed)="nextPage()"
-        >
-          Next
-        </app-button>
-      </div>
-    </div>
+    <app-pagination-bar
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalElements]="totalElements()"
+      [loading]="loading()"
+      itemLabel="events"
+      (previous)="prevPage()"
+      (next)="nextPage()"
+    />
   }
 </section>

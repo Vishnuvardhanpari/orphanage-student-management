@@ -21,7 +21,12 @@ import { APP_PATHS } from '../../../../core/constants/routes';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Button } from '../../../../shared/components/button/button';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { Field } from '../../../../shared/components/field/field';
+import { FilterPanel } from '../../../../shared/components/filter-panel/filter-panel';
+import { Input } from '../../../../shared/components/input/input';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { PaginationBar } from '../../../../shared/components/pagination-bar/pagination-bar';
+import { Select } from '../../../../shared/components/select/select';
 import { emptyPage } from '../../../../shared/models/page.models';
 import {
   AUDIT_ACTIONS,
@@ -44,7 +49,18 @@ const SORT_FIELD_MAP: Record<string, string> = {
 @Component({
   selector: 'app-audit-list-page',
   standalone: true,
-  imports: [PageHeader, EmptyState, Button, AgGridAngular, ReactiveFormsModule],
+  imports: [
+    PageHeader,
+    EmptyState,
+    Button,
+    AgGridAngular,
+    ReactiveFormsModule,
+    Field,
+    FilterPanel,
+    Input,
+    Select,
+    PaginationBar,
+  ],
   templateUrl: './audit-list-page.html',
   styleUrl: './audit-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

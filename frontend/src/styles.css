@@ -1,7 +1,11 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* OMS design tokens — primary blue, accent green, status colors, glass. */
+/*
+ * OMS design tokens — primary blue, accent green, status colors, glass.
+ * Spacing scale (Tailwind): 1=4px, 2=8px, 3=12px, 4=16px, 6=24px, 8=32px.
+ * Type scale: text-xs/sm/base/lg/xl/2xl with page titles via PageHeader (text-2xl).
+ */
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
 
@@ -21,14 +25,26 @@
   --color-accent-600: #16a34a;
   --color-accent-700: #15803d;
 
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
   --color-success-500: #22c55e;
   --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+
+  --color-warning-50: #fff7ed;
   --color-warning-500: #f97316;
   --color-warning-600: #ea580c;
+
+  --color-error-50: #fef2f2;
   --color-error-500: #ef4444;
   --color-error-600: #dc2626;
   --color-error-700: #b91c1c;
+
+  --color-inactive-50: #f9fafb;
+  --color-inactive-100: #f3f4f6;
   --color-inactive-500: #6b7280;
+  --color-inactive-600: #4b5563;
+  --color-inactive-700: #374151;
 
   --color-surface: #f8fafc;
   --color-surface-elevated: #ffffff;
@@ -39,6 +55,8 @@
 
   --color-glass-bg: rgb(255 255 255 / 0.72);
   --color-glass-border: rgb(148 163 184 / 0.35);
+
+  --color-overlay: rgb(15 23 42 / 0.45);
 }
 
 .dark {
@@ -50,6 +68,19 @@
   --color-surface-border: #334155;
   --color-glass-bg: rgb(17 24 39 / 0.72);
   --color-glass-border: rgb(148 163 184 / 0.2);
+  --color-overlay: rgb(0 0 0 / 0.6);
+
+  --color-success-50: #052e16;
+  --color-success-100: #14532d;
+  --color-success-700: #86efac;
+
+  --color-warning-50: #431407;
+  --color-inactive-50: #1f2937;
+  --color-inactive-100: #374151;
+  --color-inactive-600: #9ca3af;
+  --color-inactive-700: #d1d5db;
+
+  --color-error-50: #450a0a;
 }
 
 @layer base {
@@ -72,5 +103,119 @@
     border-color: var(--color-glass-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+
+  .oms-focus-ring {
+    @apply focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500/30;
+  }
+
+  .oms-dialog-backdrop {
+    background-color: var(--color-overlay);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .oms-page {
+    @apply flex flex-col gap-6;
+  }
+
+  .oms-section-title {
+    @apply m-0 text-lg font-semibold text-surface-fg;
+  }
+
+  .oms-card-title {
+    @apply m-0 text-base font-semibold text-surface-fg;
+  }
+
+  /* Shared native control look for forms not yet on app-input/select. */
+  .oms-control {
+    @apply w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm
+      font-normal text-surface-fg transition-colors duration-150
+      focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
+      disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  /* Status badges — used by app-status-badge and AG Grid cell HTML. */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .status-badge--success {
+    @apply bg-success-50 text-success-700;
+  }
+
+  .status-badge--warning {
+    @apply bg-warning-50 text-warning-600;
+  }
+
+  .status-badge--error {
+    @apply bg-error-50 text-error-700;
+  }
+
+  .status-badge--inactive {
+    @apply bg-inactive-100 text-inactive-700;
+  }
+
+  .status-badge--info {
+    @apply bg-primary-100 text-primary-800;
+  }
+
+  /* Dark-mode friendly AG Grid Quartz overrides (scoped; Quartz stays light by default). */
+  .dark .ag-theme-quartz {
+    --ag-background-color: var(--color-surface-elevated);
+    --ag-foreground-color: var(--color-surface-fg);
+    --ag-border-color: var(--color-surface-border);
+    --ag-header-background-color: var(--color-surface-muted);
+    --ag-odd-row-background-color: var(--color-surface-muted);
+    --ag-row-hover-color: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+    --ag-selected-row-background-color: color-mix(in srgb, var(--color-primary-500) 18%, transparent);
+    --ag-alpine-active-color: var(--color-primary-600);
+  }
+
+  /* Soften toastr on dark surfaces. */
+  .dark .toast-success,
+  .dark .toast-error,
+  .dark .toast-info,
+  .dark .toast-warning {
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  }
+}
+
+/* CDK dialog: mobile nav slides from the left edge. */
+.cdk-overlay-pane.oms-mobile-nav-panel {
+  height: 100vh !important;
+  max-width: none !important;
+  position: fixed !important;
+  inset: 0 auto 0 0 !important;
+  margin: 0 !important;
+}
+
+.cdk-overlay-pane.oms-mobile-nav-panel .cdk-dialog-container {
+  height: 100%;
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

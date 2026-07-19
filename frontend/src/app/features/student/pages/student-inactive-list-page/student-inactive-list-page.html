@@ -1,4 +1,4 @@
-<section class="student-inactive-list">
+<section class="student-inactive-list oms-page">
   <app-page-header
     title="Archived students"
     subtitle="Historical records. View profiles and documents; administrators can restore."
@@ -19,8 +19,65 @@
     </app-button>
   </app-page-header>
 
+  <form
+    [formGroup]="filterForm"
+    (ngSubmit)="applyFilters()"
+    aria-label="Archived student search and filters"
+  >
+    <app-filter-panel ariaLabel="Archived student filters" columns="4">
+      <app-field label="Search" class="student-inactive-list__field--search">
+        <app-input
+          type="search"
+          formControlName="search"
+          placeholder="Name, admission no., Aadhaar, guardian, or phone"
+        />
+      </app-field>
+      <app-field label="Gender">
+        <app-select formControlName="gender">
+          <option value="">All</option>
+          <option value="MALE">Male</option>
+          <option value="FEMALE">Female</option>
+          <option value="OTHER">Other</option>
+        </app-select>
+      </app-field>
+      <app-field label="Admission year">
+        <app-input type="number" formControlName="admissionYear" placeholder="e.g. 2024" [min]="1900" />
+      </app-field>
+      <app-field label="School">
+        <app-input type="text" formControlName="school" placeholder="School name" />
+      </app-field>
+      <div class="student-inactive-list__field">
+        <span class="student-inactive-list__age-label">Age range</span>
+        <div class="student-inactive-list__age-range">
+          <app-input
+            type="number"
+            formControlName="ageMin"
+            placeholder="Min"
+            [min]="0"
+            ariaLabel="Minimum age"
+          />
+          <span aria-hidden="true">–</span>
+          <app-input
+            type="number"
+            formControlName="ageMax"
+            placeholder="Max"
+            [min]="0"
+            ariaLabel="Maximum age"
+          />
+        </div>
+      </div>
+      <div class="student-inactive-list__filter-actions">
+        <app-button type="submit" variant="primary" size="sm">Apply</app-button>
+        <app-button type="button" variant="secondary" size="sm" (pressed)="clearFilters()">
+          Clear
+        </app-button>
+      </div>
+    </app-filter-panel>
+  </form>
+
   @if (!loading() && loadFailed()) {
     <app-empty-state
+      variant="error"
       title="Unable to load archived students"
       description="Something went wrong while loading archived students. Please try again."
     >
@@ -29,10 +86,17 @@
       </app-button>
     </app-empty-state>
   } @else if (!loading() && students().length === 0) {
-    <app-empty-state
-      title="No archived students"
-      description="Archived students will appear here after they are soft-deleted from the active list."
-    />
+    @if (filtersActive()) {
+      <app-empty-state
+        title="No matching archived students"
+        description="No archived students match the current search and filters. Try adjusting or clearing them."
+      />
+    } @else {
+      <app-empty-state
+        title="No archived students"
+        description="Archived students will appear here after they are soft-deleted from the active list."
+      />
+    }
   } @else {
     <div
       class="student-inactive-list__grid ag-theme-quartz"
@@ -53,31 +117,14 @@
       />
     </div>
 
-    <div class="student-inactive-list__pager">
-      <span class="student-inactive-list__pager-meta">
-        {{ totalElements() }} archived student{{ totalElements() === 1 ? '' : 's' }}
-        · Page {{ page() + 1 }} of {{ totalPages() || 1 }}
-      </span>
-      <div class="student-inactive-list__pager-actions">
-        <app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="page() === 0 || loading()"
-          (pressed)="prevPage()"
-        >
-          Previous
-        </app-button>
-        <app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="(page() + 1) * pageSize() >= totalElements() || loading()"
-          (pressed)="nextPage()"
-        >
-          Next
-        </app-button>
-      </div>
-    </div>
+    <app-pagination-bar
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalElements]="totalElements()"
+      [loading]="loading()"
+      itemLabel="archived students"
+      (previous)="prevPage()"
+      (next)="nextPage()"
+    />
   }
 </section>

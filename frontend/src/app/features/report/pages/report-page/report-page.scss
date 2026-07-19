@@ -9,7 +9,15 @@
 }
 
 .report-card {
-  @apply rounded-xl border border-surface-border bg-surface-elevated p-5 shadow-sm;
+  @apply rounded-xl border p-5 shadow-sm transition-shadow duration-150;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.report-card:hover {
+  @apply shadow-md;
 }
 
 .report-card--wide {
@@ -25,7 +33,7 @@
 }
 
 .report-card__link {
-  @apply text-sm font-medium text-primary-600 underline-offset-2 hover:underline;
+  @apply text-sm font-medium text-primary-600 underline-offset-2 transition-colors hover:underline;
 }
 
 .report-card__form {
@@ -45,7 +53,7 @@
 }
 
 .report-card__input {
-  @apply rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-surface-fg outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500;
+  @apply w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-normal text-surface-fg transition-colors duration-150 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .report-card__input--age {

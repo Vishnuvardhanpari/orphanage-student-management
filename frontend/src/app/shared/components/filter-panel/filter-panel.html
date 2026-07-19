@@ -1,0 +1,12 @@
+<div role="search" [attr.aria-label]="ariaLabel()">
+  <app-card variant="glass" padding="sm">
+    <div
+      class="filter-panel__grid"
+      [class.filter-panel__grid--2]="columns() === '2'"
+      [class.filter-panel__grid--3]="columns() === '3'"
+      [class.filter-panel__grid--4]="columns() === '4'"
+    >
+      <ng-content />
+    </div>
+  </app-card>
+</div>

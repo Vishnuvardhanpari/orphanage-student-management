@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
@@ -29,7 +30,12 @@ import {
   ConfirmDialogData,
 } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
+import { Field } from '../../../../shared/components/field/field';
+import { FilterPanel } from '../../../../shared/components/filter-panel/filter-panel';
+import { Input } from '../../../../shared/components/input/input';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { PaginationBar } from '../../../../shared/components/pagination-bar/pagination-bar';
+import { Select } from '../../../../shared/components/select/select';
 import { emptyPage } from '../../../../shared/models/page.models';
 import {
   ExportReportDialog,
@@ -48,12 +54,11 @@ import {
 import {
   GENDER_LABELS,
   Gender,
+  StudentInactiveListParams,
   StudentStatus,
   StudentSummary,
 } from '../../models/student.models';
-import {
-  ageFromDateOfBirth,
-} from '../student-list-page/student-list-page';
+import { ageFromDateOfBirth } from '../student-list-page/student-list-page';
 import { StudentService } from '../../services/student.service';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -77,7 +82,18 @@ const DEFAULT_SORT = 'deletedDate,desc';
 @Component({
   selector: 'app-student-inactive-list-page',
   standalone: true,
-  imports: [PageHeader, EmptyState, Button, AgGridAngular],
+  imports: [
+    PageHeader,
+    EmptyState,
+    Button,
+    AgGridAngular,
+    ReactiveFormsModule,
+    Field,
+    FilterPanel,
+    Input,
+    Select,
+    PaginationBar,
+  ],
   templateUrl: './student-inactive-list-page.html',
   styleUrl: './student-inactive-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -89,6 +105,7 @@ export class StudentInactiveListPage implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly dialog = inject(Dialog);
+  private readonly fb = inject(FormBuilder);
 
   private gridApi?: GridApi<StudentSummary>;
 
@@ -100,6 +117,7 @@ export class StudentInactiveListPage implements OnInit {
   readonly page = signal(0);
   readonly pageSize = signal(20);
   readonly sort = signal(DEFAULT_SORT);
+  readonly filtersActive = signal(false);
   readonly selectedCount = signal(0);
   readonly exporting = signal(false);
   readonly paths = APP_PATHS;
@@ -108,6 +126,15 @@ export class StudentInactiveListPage implements OnInit {
   /** Cross-page selection for PDF export (survives pagination and sorting). */
   private readonly selectedById = new Map<string, StudentSummary>();
   private restoringSelection = false;
+
+  readonly filterForm = this.fb.group({
+    search: this.fb.nonNullable.control(''),
+    gender: this.fb.nonNullable.control(''),
+    admissionYear: this.fb.control<number | null>(null),
+    school: this.fb.nonNullable.control(''),
+    ageMin: this.fb.control<number | null>(null),
+    ageMax: this.fb.control<number | null>(null),
+  });
 
   readonly rowSelection: RowSelectionOptions = {
     mode: 'multiRow',
@@ -188,7 +215,7 @@ export class StudentInactiveListPage implements OnInit {
         if (!p.value) {
           return '';
         }
-        return `<span class="student-status-badge student-status-badge--inactive">Inactive</span>`;
+        return `<span class="status-badge status-badge--inactive">Inactive</span>`;
       },
       comparator: serverSortComparator,
     },
@@ -261,6 +288,27 @@ export class StudentInactiveListPage implements OnInit {
     this.loadStudents();
   }
 
+  applyFilters(): void {
+    if (this.buildFilterParams() === null) {
+      return;
+    }
+    this.page.set(0);
+    this.loadStudents();
+  }
+
+  clearFilters(): void {
+    this.filterForm.reset({
+      search: '',
+      gender: '',
+      admissionYear: null,
+      school: '',
+      ageMin: null,
+      ageMax: null,
+    });
+    this.page.set(0);
+    this.loadStudents();
+  }
+
   prevPage(): void {
     if (this.page() > 0) {
       this.page.update((p) => p - 1);
@@ -280,15 +328,24 @@ export class StudentInactiveListPage implements OnInit {
   }
 
   loadStudents(): void {
+    const filters = this.buildFilterParams();
+    if (filters === null) {
+      return;
+    }
+
     this.loading.set(true);
     this.loadFailed.set(false);
+    this.filtersActive.set(Object.keys(filters).length > 0);
+
     this.studentService
       .listInactive({
+        ...filters,
         page: this.page(),
         size: this.pageSize(),
         sort: this.sort(),
       })
       .pipe(
+        // List requests set SKIP_ERROR_TOAST; this page owns EmptyState + Retry.
         catchError(() => {
           this.loadFailed.set(true);
           return of(emptyPage<StudentSummary>(this.pageSize()));
@@ -380,6 +437,60 @@ export class StudentInactiveListPage implements OnInit {
       },
     });
   }
+
+  private buildFilterParams(): StudentInactiveListParams | null {
+    const raw = this.filterForm.getRawValue();
+    const admissionYear = toOptionalInt(raw.admissionYear);
+    const ageMin = toOptionalInt(raw.ageMin);
+    const ageMax = toOptionalInt(raw.ageMax);
+
+    if (Number.isNaN(admissionYear)) {
+      this.notifications.error('Admission year must be a whole number.');
+      return null;
+    }
+    if (Number.isNaN(ageMin) || Number.isNaN(ageMax)) {
+      this.notifications.error('Age filters must be whole numbers.');
+      return null;
+    }
+    if ((ageMin !== null && ageMin < 0) || (ageMax !== null && ageMax < 0)) {
+      this.notifications.error('Age filters must not be negative.');
+      return null;
+    }
+    if (ageMin !== null && ageMax !== null && ageMin > ageMax) {
+      this.notifications.error('Minimum age must not exceed maximum age.');
+      return null;
+    }
+
+    const params: StudentInactiveListParams = {};
+    const search = raw.search.trim();
+    if (search) {
+      params.search = search;
+    }
+    if (raw.gender) {
+      params.gender = raw.gender as Gender;
+    }
+    if (admissionYear !== null) {
+      params.admissionYear = admissionYear;
+    }
+    const school = raw.school.trim();
+    if (school) {
+      params.school = school;
+    }
+    if (ageMin !== null) {
+      params.ageMin = ageMin;
+    }
+    if (ageMax !== null) {
+      params.ageMax = ageMax;
+    }
+    return params;
+  }
+}
+
+function toOptionalInt(value: number | null): number | null {
+  if (value === null) {
+    return null;
+  }
+  return Number.isInteger(value) ? value : Number.NaN;
 }
 
 async function readBlobErrorMessage(err: unknown, fallback: string): Promise<string> {

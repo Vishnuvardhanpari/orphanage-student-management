@@ -20,4 +20,23 @@ describe('EmptyState', () => {
     expect(compiled.textContent).toContain('Nothing here');
     expect(compiled.textContent).toContain('Placeholder content');
   });
+
+  it('applies error variant class', () => {
+    fixture.componentRef.setInput('variant', 'error');
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.empty-state--error')).toBeTruthy();
+  });
+
+  it('uses role=status for the default variant', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.empty-state')?.getAttribute('role')).toBe('status');
+  });
+
+  it('uses role=alert for the error variant', () => {
+    fixture.componentRef.setInput('variant', 'error');
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.empty-state')?.getAttribute('role')).toBe('alert');
+  });
 });

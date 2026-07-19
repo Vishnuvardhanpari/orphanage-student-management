@@ -19,3 +19,11 @@
     @apply mt-2 flex flex-wrap items-center justify-center gap-2;
   }
 }
+
+.empty-state--error .empty-state__icon {
+  @apply text-error-600;
+}
+
+.empty-state--error .empty-state__title {
+  @apply text-error-700;
+}

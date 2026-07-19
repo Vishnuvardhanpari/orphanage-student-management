@@ -5,11 +5,15 @@
 }
 
 .student-profile__loading {
-  @apply text-sm text-surface-muted-fg;
+  @apply flex flex-col gap-4;
 }
 
 .student-profile__hero {
-  @apply flex flex-col gap-4 rounded-xl border border-surface-border bg-surface-elevated p-6 sm:flex-row sm:items-center;
+  @apply flex flex-col gap-4 rounded-xl border p-6 sm:flex-row sm:items-center;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .student-profile__photo {
@@ -44,20 +48,12 @@
   }
 }
 
-.student-profile__badge {
-  @apply inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold;
-
-  &--ok {
-    @apply bg-accent-500/15 text-accent-700;
-  }
-
-  &--off {
-    @apply bg-inactive-500/15 text-inactive-500;
-  }
-}
-
 .student-profile__section {
-  @apply flex flex-col gap-4 rounded-xl border border-surface-border bg-surface-elevated p-6;
+  @apply flex flex-col gap-4 rounded-xl border p-6;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 
   h3 {
     @apply m-0 text-lg font-semibold text-surface-fg;

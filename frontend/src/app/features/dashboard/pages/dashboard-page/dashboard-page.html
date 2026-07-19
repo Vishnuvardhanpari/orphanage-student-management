@@ -15,6 +15,7 @@
 
   @if (loadError() && !loading()) {
     <app-empty-state
+      variant="error"
       title="Unable to load dashboard"
       description="Something went wrong while loading the dashboard. Please try again."
     >
@@ -26,7 +27,7 @@
     <div class="dashboard-page__stats" aria-label="Student statistics">
       @if (loading() && !summary()) {
         @for (_ of [1, 2, 3, 4, 5, 6]; track $index) {
-          <div class="stat-card stat-card--skeleton" aria-hidden="true"></div>
+          <app-skeleton variant="card" />
         }
       } @else {
         @for (card of statCards(); track card.label) {
@@ -61,7 +62,7 @@
       <article class="chart-panel">
         <h2 class="dashboard-page__section-title">Gender distribution</h2>
         @if (loading() && gender().length === 0) {
-          <div class="chart-panel__skeleton" aria-hidden="true"></div>
+          <app-skeleton variant="chart" />
         } @else {
           <p class="sr-only">{{ genderChartSummary() }}</p>
           <div
@@ -78,7 +79,7 @@
       <article class="chart-panel">
         <h2 class="dashboard-page__section-title">Status Distribution</h2>
         @if (loading() && status().length === 0) {
-          <div class="chart-panel__skeleton" aria-hidden="true"></div>
+          <app-skeleton variant="chart" />
         } @else {
           <p class="sr-only">{{ statusChartSummary() }}</p>
           <div
@@ -95,7 +96,7 @@
       <article class="chart-panel chart-panel--wide">
         <h2 class="dashboard-page__section-title">Monthly admissions</h2>
         @if (loading() && admissions().length === 0) {
-          <div class="chart-panel__skeleton" aria-hidden="true"></div>
+          <app-skeleton variant="chart" />
         } @else {
           <p class="sr-only">{{ admissionsChartSummary() }}</p>
           <div
@@ -114,7 +115,7 @@
       <article class="recent-panel">
         <h2 class="dashboard-page__section-title">Recent admissions</h2>
         @if (loading() && !summary()) {
-          <div class="recent-panel__skeleton" aria-hidden="true"></div>
+          <app-skeleton variant="block" [tall]="true" />
         } @else if ((summary()?.recentAdmissions?.length ?? 0) === 0) {
           <p class="recent-panel__empty">No active students yet.</p>
         } @else {
@@ -137,7 +138,7 @@
       <article class="recent-panel">
         <h2 class="dashboard-page__section-title">Recent updates</h2>
         @if (loading() && !summary()) {
-          <div class="recent-panel__skeleton" aria-hidden="true"></div>
+          <app-skeleton variant="block" [tall]="true" />
         } @else if ((summary()?.recentUpdates?.length ?? 0) === 0) {
           <p class="recent-panel__empty">No recent updates.</p>
         } @else {

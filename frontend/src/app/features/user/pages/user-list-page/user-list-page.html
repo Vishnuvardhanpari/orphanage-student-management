@@ -1,45 +1,47 @@
-<section class="user-list">
+<section class="user-list oms-page">
   <app-page-header title="Users" subtitle="Manage staff and administrator accounts.">
-    <a [routerLink]="[paths.users, 'new']">
-      <app-button variant="primary">Add user</app-button>
-    </a>
+    <app-button variant="primary" [routerLink]="[paths.users, 'new']">Add user</app-button>
   </app-page-header>
 
-  <form class="user-list__filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
-    <label class="user-list__field">
-      <span>Search</span>
-      <input
-        type="search"
-        formControlName="search"
-        placeholder="Username or email"
-        class="user-list__input"
-      />
-    </label>
-    <label class="user-list__field">
-      <span>Role</span>
-      <select formControlName="role" class="user-list__input">
-        <option value="">All</option>
-        <option value="ADMIN">Admin</option>
-        <option value="STAFF">Staff</option>
-      </select>
-    </label>
-    <label class="user-list__field">
-      <span>Status</span>
-      <select formControlName="enabled" class="user-list__input">
-        <option value="">All</option>
-        <option value="true">Enabled</option>
-        <option value="false">Disabled</option>
-      </select>
-    </label>
-    <div class="user-list__filter-actions">
-      <app-button type="submit" variant="primary" size="sm">Apply</app-button>
-      <app-button type="button" variant="secondary" size="sm" (pressed)="clearFilters()">
-        Clear
-      </app-button>
-    </div>
+  <form [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <app-filter-panel ariaLabel="User filters" columns="3">
+      <app-field label="Search">
+        <app-input type="search" formControlName="search" placeholder="Username or email" />
+      </app-field>
+      <app-field label="Role">
+        <app-select formControlName="role">
+          <option value="">All</option>
+          <option value="ADMIN">Admin</option>
+          <option value="STAFF">Staff</option>
+        </app-select>
+      </app-field>
+      <app-field label="Status">
+        <app-select formControlName="enabled">
+          <option value="">All</option>
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </app-select>
+      </app-field>
+      <div class="user-list__filter-actions">
+        <app-button type="submit" variant="primary" size="sm">Apply</app-button>
+        <app-button type="button" variant="secondary" size="sm" (pressed)="clearFilters()">
+          Clear
+        </app-button>
+      </div>
+    </app-filter-panel>
   </form>
 
-  @if (!loading() && users().length === 0) {
+  @if (!loading() && loadFailed()) {
+    <app-empty-state
+      variant="error"
+      title="Unable to load users"
+      description="Something went wrong while loading the user list. Please try again."
+    >
+      <app-button type="button" variant="primary" size="sm" (pressed)="loadUsers()">
+        Retry
+      </app-button>
+    </app-empty-state>
+  } @else if (!loading() && users().length === 0) {
     <app-empty-state
       title="No users found"
       description="Try adjusting filters or create a new staff account."
@@ -48,6 +50,7 @@
     <div class="user-list__grid ag-theme-quartz" [class.user-list__grid--loading]="loading()">
       <ag-grid-angular
         style="width: 100%; height: 100%;"
+        theme="legacy"
         [rowData]="users()"
         [columnDefs]="columnDefs"
         [defaultColDef]="defaultColDef"
@@ -58,30 +61,14 @@
       />
     </div>
 
-    <div class="user-list__pager">
-      <span class="user-list__pager-meta">
-        {{ totalElements() }} user{{ totalElements() === 1 ? '' : 's' }} · Page {{ page() + 1 }}
-      </span>
-      <div class="user-list__pager-actions">
-        <app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="page() === 0 || loading()"
-          (pressed)="prevPage()"
-        >
-          Previous
-        </app-button>
-        <app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="(page() + 1) * pageSize() >= totalElements() || loading()"
-          (pressed)="nextPage()"
-        >
-          Next
-        </app-button>
-      </div>
-    </div>
+    <app-pagination-bar
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalElements]="totalElements()"
+      [loading]="loading()"
+      itemLabel="users"
+      (previous)="prevPage()"
+      (next)="nextPage()"
+    />
   }
 </section>

@@ -1,0 +1,37 @@
+@reference "../../../../styles.css";
+
+.card {
+  @apply rounded-xl border transition-shadow duration-150;
+}
+
+.card--elevated {
+  @apply border-surface-border bg-surface-elevated shadow-sm;
+}
+
+.card--glass {
+  @apply border shadow-sm;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.card--muted {
+  @apply border-surface-border bg-surface-muted shadow-none;
+}
+
+.card--pad-sm {
+  @apply p-4;
+}
+
+.card--pad-md {
+  @apply p-5;
+}
+
+.card--pad-lg {
+  @apply p-6;
+}
+
+.card--interactive:hover {
+  @apply shadow-md;
+}

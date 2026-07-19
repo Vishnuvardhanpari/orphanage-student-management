@@ -1,0 +1,31 @@
+@switch (variant()) {
+  @case ('text') {
+    <div class="skeleton skeleton--text" [class.skeleton--tall]="tall()"></div>
+  }
+  @case ('card') {
+    <div class="skeleton skeleton--card">
+      <div class="skeleton skeleton--block skeleton--card-title"></div>
+      <div class="skeleton skeleton--text"></div>
+      <div class="skeleton skeleton--text skeleton--text-short"></div>
+    </div>
+  }
+  @case ('chart') {
+    <div class="skeleton skeleton--chart">
+      <div class="skeleton skeleton--block skeleton--chart-title"></div>
+      <div class="skeleton skeleton--block skeleton--chart-body"></div>
+    </div>
+  }
+  @case ('table-row') {
+    <div class="skeleton skeleton--table-row">
+      <div class="skeleton skeleton--text"></div>
+      <div class="skeleton skeleton--text"></div>
+      <div class="skeleton skeleton--text skeleton--text-short"></div>
+    </div>
+  }
+  @default {
+    <div
+      class="skeleton skeleton--block"
+      [class.skeleton--tall]="tall()"
+    ></div>
+  }
+}

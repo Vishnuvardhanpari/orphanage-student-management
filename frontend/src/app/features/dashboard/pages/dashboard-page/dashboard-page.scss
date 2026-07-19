@@ -13,17 +13,15 @@
 }
 
 .stat-card {
-  @apply rounded-xl border border-surface-border bg-surface-elevated p-4 shadow-sm;
+  @apply rounded-xl border p-4 shadow-sm transition-shadow duration-150;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.stat-card--skeleton,
-.chart-panel__skeleton,
-.recent-panel__skeleton {
-  @apply animate-pulse rounded-lg bg-surface-muted/40;
-}
-
-.stat-card--skeleton {
-  @apply h-24;
+.stat-card:hover {
+  @apply shadow-md;
 }
 
 .stat-card__label {
@@ -48,7 +46,16 @@
 
 .chart-panel,
 .recent-panel {
-  @apply rounded-xl border border-surface-border bg-surface-elevated p-4 shadow-sm;
+  @apply rounded-xl border p-4 shadow-sm transition-shadow duration-150;
+  background-color: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.chart-panel:hover,
+.recent-panel:hover {
+  @apply shadow-md;
 }
 
 .chart-panel--wide {
@@ -63,10 +70,6 @@
   @apply h-72;
 }
 
-.chart-panel__skeleton {
-  @apply h-64;
-}
-
 .dashboard-page__recent {
   @apply grid gap-4 lg:grid-cols-2;
 }
@@ -76,7 +79,9 @@
 }
 
 .recent-panel__link {
-  @apply flex flex-col gap-0.5 rounded-lg px-2 py-2 text-sm hover:bg-surface-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500;
+  @apply flex flex-col gap-0.5 rounded-lg px-2 py-2 text-sm transition-colors
+    hover:bg-surface-muted/40
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
 }
 
 .recent-panel__name {
@@ -90,12 +95,4 @@
 
 .recent-panel__empty {
   @apply m-0 text-sm;
-}
-
-.recent-panel__skeleton {
-  @apply h-32;
-}
-
-.sr-only {
-  @apply sr-only;
 }

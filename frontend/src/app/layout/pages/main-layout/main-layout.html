@@ -1,11 +1,13 @@
 <div class="main-layout">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
   <aside class="main-layout__sidebar hidden md:block">
     <app-sidebar />
   </aside>
 
   <div class="main-layout__main">
     <app-topbar />
-    <main class="main-layout__content" id="main-content">
+    <main class="main-layout__content" id="main-content" tabindex="-1">
       <router-outlet />
     </main>
     <app-footer />

@@ -1,0 +1,11 @@
+<textarea
+  class="oms-control"
+  [attr.id]="id()"
+  [placeholder]="placeholder()"
+  [rows]="rows()"
+  [value]="value()"
+  [disabled]="disabled()"
+  [attr.aria-label]="ariaLabel()"
+  (input)="onInput($event)"
+  (blur)="onBlur()"
+></textarea>
