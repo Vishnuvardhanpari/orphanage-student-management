@@ -23,8 +23,9 @@ describe('Student critical paths', () => {
     cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
     cy.get('button[aria-label^="View student"]', { timeout: 15000 }).first().click();
     cy.url().should('match', /\/students\/[0-9a-f-]{36}$/i);
+    cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
 
-    cy.contains('button', /^Archive$/i).click();
+    cy.contains('button.oms-btn--danger', /^Archive$/i, { timeout: 15000 }).click();
     cy.get('.cdk-overlay-container').within(() => {
       cy.contains('button', /^Archive$/i).click();
     });
