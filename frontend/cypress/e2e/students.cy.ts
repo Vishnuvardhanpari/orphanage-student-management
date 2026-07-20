@@ -20,9 +20,8 @@ describe('Student critical paths', () => {
     cy.visit('/students');
     cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
     cy.contains('button', /^Apply$/i).click();
-    cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
-
-    cy.contains('button', /^View$/i).first().click();
+    cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
+    cy.get('button[aria-label^="View student"]', { timeout: 15000 }).first().click();
     cy.url().should('match', /\/students\/[0-9a-f-]{36}$/i);
 
     cy.contains('button', /^Archive$/i).click();
@@ -33,8 +32,8 @@ describe('Student critical paths', () => {
     cy.visit('/students/inactive');
     cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
     cy.contains('button', /^Apply$/i).click();
-    cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
-    cy.contains('button', /^Restore$/i).first().click();
+    cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
+    cy.get('button[aria-label^="Restore student"]', { timeout: 15000 }).first().click();
     cy.get('.cdk-overlay-container').within(() => {
       cy.contains('button', /^Restore$/i).click();
     });
@@ -42,6 +41,6 @@ describe('Student critical paths', () => {
     cy.visit('/students');
     cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
     cy.contains('button', /^Apply$/i).click();
-    cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
+    cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
   });
 });
