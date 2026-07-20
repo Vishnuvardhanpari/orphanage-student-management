@@ -550,7 +550,7 @@ Milestone 16 — Production Validation (next)
 
 ### Milestone 15 closure
 
-* Repo deliverables merged to `main` from `milestone/production-deployment`
+* Merged to `main` via PR #94 from `milestone/production-deployment`
 * Operator: provision GCP/Supabase/LB per runbook, configure GitHub `production` environment variables, run CD smoke checklist (full acceptance = Milestone 16)
 
 ---
