@@ -18,7 +18,7 @@ describe('Student critical paths', () => {
     cy.contains(admissionNumber).should('be.visible');
 
     cy.visit('/students');
-    cy.get('input[formControlName="search"]').clear().type(admissionNumber);
+    cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
     cy.contains('button', /^Apply$/i).click();
     cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
 
@@ -31,7 +31,7 @@ describe('Student critical paths', () => {
     });
 
     cy.visit('/students/inactive');
-    cy.get('input[formControlName="search"]').clear().type(admissionNumber);
+    cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
     cy.contains('button', /^Apply$/i).click();
     cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
     cy.contains('button', /^Restore$/i).first().click();
@@ -40,7 +40,7 @@ describe('Student critical paths', () => {
     });
 
     cy.visit('/students');
-    cy.get('input[formControlName="search"]').clear().type(admissionNumber);
+    cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
     cy.contains('button', /^Apply$/i).click();
     cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
   });
