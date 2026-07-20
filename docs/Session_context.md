@@ -550,8 +550,9 @@ Milestone 16 — Production Validation (next)
 
 ### Milestone 15 closure
 
-* Merged to `main` via PR #94 from `milestone/production-deployment`
+* Merged to `main` via PR #94 (`f3ee164`) from `milestone/production-deployment`
 * Operator: provision GCP/Supabase/LB per runbook, configure GitHub `production` environment variables, run CD smoke checklist (full acceptance = Milestone 16)
+* CI follow-ups on the same PR: Cypress TS 6 deprecation config + student E2E selectors for `app-input` / AG Grid
 
 ---
 
