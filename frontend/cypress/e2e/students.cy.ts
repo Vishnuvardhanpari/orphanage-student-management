@@ -19,29 +19,29 @@ describe('Student critical paths', () => {
 
     cy.visit('/students');
     cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
-    cy.contains('button', /^Apply$/i).click();
+    cy.contains('button', 'Apply').click();
     cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
     cy.get('button[aria-label^="View student"]', { timeout: 15000 }).first().click();
     cy.url().should('match', /\/students\/[0-9a-f-]{36}$/i);
     cy.contains(admissionNumber, { timeout: 15000 }).should('be.visible');
 
-    cy.contains('button.oms-btn--danger', /^Archive$/i, { timeout: 15000 }).click();
+    cy.contains('button.oms-btn--danger', 'Archive', { timeout: 15000 }).click();
     cy.get('.cdk-overlay-container').within(() => {
-      cy.contains('button', /^Archive$/i).click();
+      cy.contains('button', 'Archive').click();
     });
 
     cy.visit('/students/inactive');
     cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
-    cy.contains('button', /^Apply$/i).click();
+    cy.contains('button', 'Apply').click();
     cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
     cy.get('button[aria-label^="Restore student"]', { timeout: 15000 }).first().click();
     cy.get('.cdk-overlay-container').within(() => {
-      cy.contains('button', /^Restore$/i).click();
+      cy.contains('button', 'Restore').click();
     });
 
     cy.visit('/students');
     cy.get('app-input[formcontrolname="search"] input').clear().type(admissionNumber);
-    cy.contains('button', /^Apply$/i).click();
+    cy.contains('button', 'Apply').click();
     cy.contains('.ag-row', admissionNumber, { timeout: 15000 }).should('be.visible');
   });
 });
