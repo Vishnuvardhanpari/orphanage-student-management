@@ -20,7 +20,7 @@ Orphanage Management System (OMS)
 
 **Current Phase**
 
-Milestone 14 — Testing (completed and closed; merged to `main`)
+Milestone 15 — Production Deployment (repo deliverables completed and merged to `main`; live cutover is operator-run)
 
 **Current Sprint**
 
@@ -28,7 +28,7 @@ Sprint 1
 
 **Current Milestone**
 
-Milestone 15 — Production Deployment (next)
+Milestone 16 — Production Validation (next)
 
 ---
 
@@ -526,9 +526,38 @@ Milestone 15 — Production Deployment (next)
 
 ---
 
+## Milestone 15 — Production Deployment (completed and merged to `main`)
+
+### Repo / automation
+
+* `backend/.dockerignore` for Cloud Run image builds
+* `application.yml`: `server.port` honors Cloud Run `PORT`
+* `application-prod.yml`: JDBC `sslmode` default `require` (`DB_SSL_MODE`) for Supabase
+* Frontend `environment.prod.ts`: same-origin `apiBaseUrl: '/api/v1'`; CD injects `googleClientId`
+* GitHub Actions CD: `.github/workflows/cd-deploy.yml` (WIF → Artifact Registry → Cloud Run; `ng build` → GCS SPA)
+* CI tests workflow unchanged (`.github/workflows/ci-tests.yml`)
+
+### Docs
+
+* `docs/14_Production_Runbook.md` — greenfield GCP/Supabase/LB/SSL/DNS/WIF/secrets operator runbook
+* `docs/09_Deployment.md` — single-origin LB architecture, CD pipeline, secrets, rollback
+* README / `infra/README.md` / `frontend/README.md` updated for production pointers
+
+### Operator prerequisites (not automated)
+
+* GCP billing account and custom domain must be supplied by the operator
+* Live cutover requires running the runbook + configuring GitHub Actions variables + first CD deploy
+
+### Milestone 15 closure
+
+* Repo deliverables merged to `main` from `milestone/production-deployment`
+* Operator: provision GCP/Supabase/LB per runbook, configure GitHub `production` environment variables, run CD smoke checklist (full acceptance = Milestone 16)
+
+---
+
 # Technology Decisions
 
-Unchanged from Milestone 1–13, plus Milestone 14 testing:
+Unchanged from Milestone 1–14, plus Milestone 15 deployment:
 
 * Soft delete/restore with optional exit payload captured at archive time (extended in QA BUG-005; no new endpoint)
 * Archived list/profile readable by ADMIN and STAFF; restore ADMIN-only (STAFF read access is an explicit product decision vs Business Rules wording that emphasizes administrators for historical search)
@@ -538,12 +567,13 @@ Unchanged from Milestone 1–13, plus Milestone 14 testing:
 * Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
 * Milestone 13: glass on premium surfaces only; dark mode architecture completed (not full third-party theme skins); custom Tailwind utilities used as HTML classes (not `@apply` in component SCSS — Tailwind v4 limitation); student form / report page Field migration deferred (follow-up after M13)
 * Milestone 14: backend integration tests remain on **H2** (PostgreSQL mode); Testcontainers deferred; JaCoCo LINE ≥80%; frontend Karma lines ≥80%; Cypress critical-path E2E; CI test workflow only (deploy remains M15); `GcsStorageService` excluded from JaCoCo (prod GCS HTTP; local storage covered)
+* Milestone 15: single-origin Global HTTPS LB (custom domain + managed SSL); `/` → GCS SPA, `/api/*` → Cloud Run (no path strip); Cloud Run ingress LB-only; Secret Manager for DB/JWT/bootstrap passwords; GitHub Actions CD via WIF; greenfield steps in `docs/14_Production_Runbook.md` (no Terraform in M15); Cloud CDN deferred; billing account + domain are operator prerequisites
 
 ---
 
 # Current Objective
 
-Begin Milestone 15 — Production Deployment.
+Begin Milestone 16 — Production Validation (operator live cutover + acceptance testing per roadmap).
 
 ---
 
@@ -562,7 +592,7 @@ main
 * Student soft delete; no standalone document module
 * No Google self-registration — users must be pre-provisioned (Milestone 3 User Management)
 * `@SQLRestriction` hides soft-deleted rows by default; uniqueness and restore/inactive queries must bypass explicitly (native/`@Query`)
-* Milestone 5–14 completed and merged to `main`
+* Milestone 5–15 completed and merged to `main`
 * Milestone 9: soft delete with optional exit details captured at archive time (QA BUG-005); ADMIN+STAFF can view archived students; only ADMIN restores
 * Profile photo is never exposed as a storage path in JSON; clients fetch via authenticated photo endpoint (blob URL in UI)
 * Milestone 10: PDF docs are references only; image docs embedded inline; report generation writes persistent `audit_logs` (M12) and keeps SLF4J for ops; sync PDF download (no job queue); PDFs not persisted to GCS
@@ -571,21 +601,22 @@ main
 * Milestone 12: audit list+filters replace roadmap `/audit/search`; photo and user-admin actions not audited; username/IP snapshotted (no FK to users); report exports are writable transactions so audit inserts succeed; DB-level append-only via V8 trigger (TRUNCATE not blocked); UI logout sends Bearer for LOGOUT audit; date filters use browser local day → Instant
 * Milestone 13: glass on premium surfaces; dark-mode-ready tokens + ThemeService; mobile CDK nav drawer; 404 ErrorPage; shared FilterPanel/PaginationBar/DialogShell; archived list filters; page-owned list errors; user form on design-system controls; student/report form migration follow-up
 * Milestone 14: H2 for Spring Boot tests (not Testcontainers); JaCoCo/Karma line gates at 80%; Cypress critical paths; GitHub Actions `ci-tests.yml`
+* Milestone 15: single-origin LB + custom domain; relative prod `apiBaseUrl`; WIF CD; runbook-driven greenfield (no billing/domain purchase in-repo)
 
 ---
 
 # Pending Milestones
 
-* Milestone 15 — Production Deployment
 * Milestone 16 — Production Validation
 * … (see roadmap)
 * Follow-up (non-blocking): migrate student form + report page to Field/Input/Select/Textarea
+* Operator follow-up: greenfield prod provisioning per `docs/14_Production_Runbook.md` and first CD deploy
 
 ---
 
 # Blockers
 
-None.
+None for repo work. Live production requires operator GCP billing, custom domain, and completion of `docs/14_Production_Runbook.md`.
 
 **Local note:** Windows service `postgresql-x64-17` may occupy `5432`; OMS Docker Postgres often uses `DB_PORT=5433` in local `.env`. Low Windows paging-file memory can cause Surefire / `ng build` OOMs; prefer forked Surefire for JaCoCo (`forkCount=1`, do not use `-DforkCount=0` when measuring coverage). Prefer targeted `ng test --include=...` batches when memory is tight (coverage gate applies to full suite).
 
@@ -593,7 +624,9 @@ None.
 
 # Next Session Goal
 
-1. Begin Milestone 15 — Production Deployment (Cloud Run, GCS frontend, Supabase, secrets, HTTPS, logging/monitoring)
+1. Operator: provision GCP/Supabase/LB per `docs/14_Production_Runbook.md` and run first CD deploy
+2. Begin Milestone 16 — Production Validation (login, CRUD, search, reports, authz, logging, performance)
+3. After acceptance, close M16 per roadmap
 
 ---
 

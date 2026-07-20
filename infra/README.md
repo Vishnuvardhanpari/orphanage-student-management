@@ -2,6 +2,13 @@
 
 This folder contains Docker Compose configuration for local development.
 
+Production provisioning (GCP, Load Balancer, WIF, Supabase) is documented in:
+
+- [docs/14_Production_Runbook.md](../docs/14_Production_Runbook.md)
+- [docs/09_Deployment.md](../docs/09_Deployment.md)
+
+CD automation: [`.github/workflows/cd-deploy.yml`](../.github/workflows/cd-deploy.yml)
+
 ## PostgreSQL
 
 OMS uses PostgreSQL 16 locally via Docker Compose. Production uses Supabase PostgreSQL ([docs/09_Deployment.md](../docs/09_Deployment.md)).

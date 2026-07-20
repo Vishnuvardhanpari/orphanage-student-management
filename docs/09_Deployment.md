@@ -13,24 +13,45 @@ The deployment strategy prioritizes:
 - Security
 - Production readiness
 
+**Operator runbook (greenfield):** [14_Production_Runbook.md](./14_Production_Runbook.md)  
+**CD workflow:** `.github/workflows/cd-deploy.yml`  
+**CI tests:** `.github/workflows/ci-tests.yml`
+
 ---
 
 # Deployment Architecture
 
+```text
                 Internet
                      │
                      ▼
         Google Cloud HTTPS Load Balancer
+              (custom domain + managed SSL)
                      │
         ┌────────────┴────────────┐
+        │ path /api/*             │ default /
         ▼                         ▼
-Angular Application          Spring Boot API
-(Google Cloud Storage)       (Cloud Run)
-                                      │
-                ┌─────────────────────┴─────────────────────┐
-                ▼                                           ▼
-      Supabase PostgreSQL                     Google Cloud Storage
-       (Application Data)                     (Photos & Documents)
+Spring Boot API              Angular SPA
+(Cloud Run)                  (GCS bucket)
+        │
+        ├──────────────► Supabase PostgreSQL
+        └──────────────► GCS (private docs bucket)
+```
+
+**Single-origin production (Milestone 15):**
+
+| Path | Backend |
+|------|---------|
+| `/api` and `/api/*` | Cloud Run (paths preserved; Spring serves `/api/v1/**`) |
+| All other paths | GCS SPA bucket |
+
+- Browser `apiBaseUrl` is **`/api/v1`** (same origin) — see `frontend/src/environments/environment.prod.ts`.
+- Cloud Run **ingress** = `internal-and-cloud-load-balancing` (no public `*.run.app` API).
+- **SPA deep links:** backend-bucket / website error page returns `index.html` for missing objects so Angular routes work on refresh.
+- **Cloud CDN:** optional later; attach to the SPA backend without changing path routing.
+- **Actuator** (`/actuator/health`, Prometheus): used for Cloud Run probes only — **not** exposed on the public Load Balancer URL map.
+
+Secrets: Google Secret Manager. Deploy identity: GitHub Actions → Workload Identity Federation → `oms-deploy` SA.
 
 ---
 
@@ -42,14 +63,14 @@ Angular
 
 Hosting
 
-Google Cloud Storage
+Google Cloud Storage (behind Global HTTPS Load Balancer)
 
 Reason
 
 - Very low cost
-- CDN ready
-- HTTPS support
-- Easy deployment
+- CDN ready (Cloud CDN optional)
+- HTTPS via Load Balancer + Google-managed certificate
+- Easy deployment via CD (`gcloud storage rsync`)
 
 ---
 
@@ -69,7 +90,7 @@ Reason
 
 - Auto Scaling
 - Scale to Zero
-- HTTPS Included
+- HTTPS Included (via LB)
 - Managed Infrastructure
 - Pay only for usage
 
@@ -91,11 +112,13 @@ Reason
 - Easy Integration
 - Low Cost
 
+Prod JDBC uses `sslmode=require` by default (`DB_SSL_MODE` in `application-prod.yml`).
+
 ---
 
 ## Document Storage
 
-Google Cloud Storage
+Google Cloud Storage (private bucket)
 
 Documents include
 
@@ -107,6 +130,8 @@ Documents include
 - Other Documents
 
 Database stores only metadata.
+
+The SPA bucket and the documents bucket are **separate**.
 
 ---
 
@@ -140,33 +165,25 @@ Spring Boot
 
 ↓
 
-Supabase Dev Database
+Supabase Dev Database (optional)
 
 ↓
 
-Google Cloud Storage Test Bucket
+Google Cloud Storage Test Bucket (optional)
 
 ---
 
 Production
 
-Angular
+Custom domain → Global HTTPS Load Balancer
 
 ↓
 
-Google Cloud Storage
+GCS SPA + Cloud Run API
 
 ↓
 
-Cloud Run
-
-↓
-
-Supabase PostgreSQL
-
-↓
-
-Google Cloud Storage
+Supabase PostgreSQL + private GCS docs
 
 ---
 
@@ -184,7 +201,7 @@ Testing
 
 Purpose
 
-Testing new features
+Testing new features (clone the production runbook with different project/buckets)
 
 ---
 
@@ -194,34 +211,45 @@ Purpose
 
 Live system
 
+Milestone 15 provisions a single production environment. Staging is optional later.
+
 ---
 
 # Environment Variables
 
-Backend
+Backend (Cloud Run / `.env` local)
 
 ```
 SPRING_PROFILES_ACTIVE
 
 DB_HOST
-
 DB_PORT
-
 DB_NAME
-
 DB_USERNAME
+DB_PASSWORD          # Secret Manager in prod
+DB_SSL_MODE          # default require in prod
 
-DB_PASSWORD
-
-JWT_SECRET
-
+JWT_SECRET           # Secret Manager in prod
 JWT_EXPIRATION
+JWT_REFRESH_EXPIRATION
+JWT_ISSUER
 
 GOOGLE_CLIENT_ID
 
-GOOGLE_CLIENT_SECRET
+GCS_BUCKET_NAME      # private docs bucket
 
-GCS_BUCKET_NAME
+OMS_CORS_ALLOWED_ORIGINS   # https://your.domain
+
+OMS_BOOTSTRAP_ADMIN_USERNAME
+OMS_BOOTSTRAP_ADMIN_EMAIL
+OMS_BOOTSTRAP_ADMIN_PASSWORD   # Secret Manager in prod
+```
+
+Frontend (build-time)
+
+```
+apiBaseUrl=/api/v1
+googleClientId       # injected by CD from GitHub variable GOOGLE_CLIENT_ID
 ```
 
 Never commit secrets to Git.
@@ -236,52 +264,52 @@ Google Secret Manager
 
 Store
 
-- Database Password
-- JWT Secret
-- Google OAuth Secret
-- Storage Credentials
+- Database Password (`DB_PASSWORD`)
+- JWT Secret (`JWT_SECRET`)
+- Bootstrap admin password (`OMS_BOOTSTRAP_ADMIN_PASSWORD`)
+
+`GOOGLE_CLIENT_SECRET` is not required for the current GIS ID-token verification flow.
 
 Never store secrets inside
 
-application.yml
+application.yml (as literal values)
 
 application.properties
 
 Git Repository
 
+GitHub Actions secrets for DB/JWT (use Secret Manager + Cloud Run `--set-secrets`)
+
 ---
 
 # Build Pipeline
 
-GitHub
+## Continuous Integration
 
-↓
+GitHub Actions → `.github/workflows/ci-tests.yml`
 
-GitHub Actions
+- Backend `mvn verify` (JaCoCo ≥80% lines)
+- Frontend Karma coverage
+- Cypress critical-path E2E
 
-↓
+## Continuous Deployment
 
-Run Tests
+GitHub Actions → `.github/workflows/cd-deploy.yml`
 
-↓
+```text
+GitHub (main or workflow_dispatch)
+        ↓
+Workload Identity Federation
+        ↓
+┌───────┴────────┐
+▼                ▼
+Docker build     ng build (prod)
+Artifact Registry
+        ↓                ↓
+Cloud Run deploy    GCS SPA sync
+```
 
-Build Angular
-
-↓
-
-Build Spring Boot
-
-↓
-
-Create Docker Image
-
-↓
-
-Push to Artifact Registry
-
-↓
-
-Deploy Cloud Run
+First-time infrastructure (project, LB, WIF, Supabase, secrets) is **manual** via [14_Production_Runbook.md](./14_Production_Runbook.md). CD assumes that work is done.
 
 ---
 
@@ -293,49 +321,41 @@ Generate Production Build
 ng build --configuration production
 ```
 
-Upload build artifacts to
-
-Google Cloud Storage
-
-Enable
-
-Static Website Hosting
+CD injects `googleClientId`, then uploads `dist/oms-frontend/browser` to the SPA bucket.
 
 Configure
 
-Cache Headers
-
-HTTPS
+- Cache: `index.html` no-cache; hashed assets long-lived
+- HTTPS via Load Balancer
+- SPA fallback for client-side routes
 
 ---
 
 # Spring Boot Deployment
 
-Package
+Package / image
 
 ```
-mvn clean package
+docker build -t oms-api backend/
 ```
 
-Create Docker Image
+Image includes `SPRING_PROFILES_ACTIVE=prod` by default ([backend/Dockerfile](../backend/Dockerfile)).
 
-```
-docker build -t orphanage-student-management .
-```
+Cloud Run listens on `PORT` (mapped to Spring `server.port`).
 
 Deploy to
 
-Cloud Run
+Cloud Run (via CD or runbook bootstrap)
 
 ---
 
 # Database Deployment
 
-Create PostgreSQL Database
+Create PostgreSQL Database (Supabase)
 
-Apply Flyway Migrations
+Apply Flyway Migrations (on Cloud Run startup)
 
-Seed Initial Data
+Seed Initial Data (Flyway roles + AdminBootstrapRunner when users empty)
 
 Verify Indexes
 
@@ -351,7 +371,7 @@ STAFF
 
 Create
 
-Initial Administrator Account
+Initial Administrator Account (`OMS_BOOTSTRAP_*` secrets/env)
 
 ---
 
@@ -375,33 +395,33 @@ student-documents/
 
 Database
 
-Daily Backup
+Daily Backup (enable in Supabase)
 
 Document Storage
 
-Weekly Backup
+Weekly Backup / bucket versioning (optional)
 
 Audit Logs
 
-Never Delete
+Never Delete (append-only trigger)
 
 ---
 
 # Monitoring
 
-Google Cloud Logging
+Google Cloud Logging (Cloud Run default)
 
 Google Cloud Monitoring
 
 Spring Boot Actuator
 
-Health Endpoint
+Health Endpoint (Cloud Run probes only)
 
 ```
 /actuator/health
 ```
 
-Metrics
+Metrics (optional internal scrape — not on public LB)
 
 ```
 /actuator/prometheus
@@ -417,17 +437,17 @@ Prometheus
 
 # Security
 
-HTTPS Only
+HTTPS Only (LB + managed cert + HTTP redirect)
 
 JWT Authentication
 
-Google OAuth
+Google OAuth (GIS ID token)
 
 BCrypt Passwords
 
-Private Cloud Storage Bucket
+Private documents bucket (ADC on Cloud Run runtime SA)
 
-Signed URLs
+API not publicly exposed on `*.run.app` (LB-only ingress)
 
 Input Validation
 
@@ -445,7 +465,7 @@ Angular
 
 Google Cloud Storage
 
-Nearly Free
+Nearly Free (plus LB baseline cost)
 
 Backend
 
@@ -457,7 +477,7 @@ Database
 
 Supabase
 
-Free Tier
+Free Tier (or paid as needed)
 
 Storage
 
@@ -465,11 +485,19 @@ Google Cloud Storage
 
 Pay Per Usage
 
+Note: a Global HTTPS Load Balancer has ongoing base cost even at low traffic — review current pricing.
+
+---
+
+# Rollback
+
+- API: redeploy previous Artifact Registry image digest / Cloud Run revision
+- SPA: redeploy previous git SHA via CD, or restore bucket versions
+- Details: [14_Production_Runbook.md](./14_Production_Runbook.md) §13
+
 ---
 
 # Future Improvements
-
-Custom Domain
 
 Cloud CDN
 
@@ -484,3 +512,5 @@ Automated Backups
 Performance Monitoring
 
 Application Insights
+
+Terraform / Pulumi (IaC) for the runbook steps

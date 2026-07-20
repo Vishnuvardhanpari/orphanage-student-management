@@ -27,7 +27,8 @@ spring:
       max-request-size: 50MB
 
 server:
-  port: ${SERVER_PORT:8080}
+  # Cloud Run sets PORT; local/dev may set SERVER_PORT.
+  port: ${PORT:${SERVER_PORT:8080}}
   error:
     include-stacktrace: never
     include-message: always

@@ -9,12 +9,21 @@ orphanage-student-management/
 ├── backend/          # Spring Boot API (Milestone 1+)
 ├── frontend/         # Angular application (Milestone 1+)
 ├── database/         # Shared SQL seeds and database utilities
-├── infra/            # Docker Compose and deployment helpers
+├── infra/            # Docker Compose (local) + pointers to production runbook
 ├── docs/             # Project documentation
-├── .github/          # CI/CD workflows (placeholder)
+├── .github/          # CI (ci-tests) and CD (cd-deploy) workflows
 ├── .env.example      # Environment variable template
 └── README.md
 ```
+
+## Production deployment
+
+Greenfield production setup (GCP, Supabase, Load Balancer, secrets, WIF) and CD usage:
+
+- [docs/14_Production_Runbook.md](docs/14_Production_Runbook.md)
+- [docs/09_Deployment.md](docs/09_Deployment.md)
+
+This repository does **not** create a GCP billing account or purchase a domain — those are operator prerequisites.
 
 ## Prerequisites
 
