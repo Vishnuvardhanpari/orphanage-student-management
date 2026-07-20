@@ -1,0 +1,7 @@
+{
+  "extends": "../tsconfig.cypress.json",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["**/*.ts", "../cypress.config.ts"]
+}

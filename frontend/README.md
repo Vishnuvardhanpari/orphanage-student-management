@@ -55,8 +55,10 @@ npm run test:ci
 
 | File | Purpose |
 |------|---------|
-| `src/environments/environment.ts` | Local/dev — `apiBaseUrl: '/api/v1'` |
-| `src/environments/environment.prod.ts` | Production — replace Cloud Run URL before Milestone 15 |
+| `src/environments/environment.ts` | Local/dev — `apiBaseUrl: '/api/v1'` (proxy) |
+| `src/environments/environment.prod.ts` | Production — same-origin `apiBaseUrl: '/api/v1'`; CD injects `googleClientId` |
+
+Production hosting uses a Global HTTPS Load Balancer (custom domain). See [docs/14_Production_Runbook.md](../docs/14_Production_Runbook.md).
 
 ## Folder structure
 

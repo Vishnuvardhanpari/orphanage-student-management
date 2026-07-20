@@ -1,0 +1,14 @@
+# Build context is backend/. Keep the image build fast and free of local artifacts.
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+.vscode/
+*.md
+.env
+.env.*
+storage/
+**/test-storage/
+.DS_Store
+Thumbs.db
